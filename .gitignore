@@ -1,0 +1,12 @@
+.vscode
+
+## Bin directory
+.bin
+
+## Limine
+bootloader/limine
+
+## kernel
+target/boot/kernel.bin
+
+
