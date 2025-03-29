@@ -1,7 +1,7 @@
 .vscode
 
 ## Bin directory
-.bin
+bin
 
 ## Limine
 bootloader/limine
