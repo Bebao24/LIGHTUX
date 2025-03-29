@@ -10,6 +10,6 @@ This is a completely new OS and shouldn't be used daily.
 Please go to ``docs/install.md`` for guide on how to build and run this OS.
 
 ## License:
-I will add a license later...
+This project is licensed under GPL v3 (GNU General Public License v3.0). For more information go to the [LICENSE](LICENSE) file.
 
 
