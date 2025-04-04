@@ -4,6 +4,7 @@
 #include <limine.h>
 #include <system.h>
 #include <boot.h>
+#include <logging.h>
 
 static volatile LIMINE_BASE_REVISION(3);
 
@@ -15,6 +16,8 @@ void kmain()
 	}
 
 	GetBootInfo();
+
+	debugs("Hello World!\n");
 
 	halt();
 	

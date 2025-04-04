@@ -9,7 +9,7 @@ TARGET_LINKFLAGS += -m elf_x86_64 \
     -T linker.ld
 
 ## Include paths
-TARGET_CFLAGS += -I ../libs -I ../libs/boot -I src/cpu -I src
+TARGET_CFLAGS += -I ../libs -I ../libs/boot -I src/cpu -I src -I src/qemu
 
 C_SOURCES := $(shell find src -name "*.c")
 C_OBJECTS := $(patsubst src/%.c, $(BUILD_DIR)/kernel/x86_64/%.o, $(C_SOURCES))
