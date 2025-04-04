@@ -17,8 +17,8 @@ void kmain()
 
 	GetBootInfo();
 
-	debugs("Hello World!\n");
+	debugf("Hello World!\n");
+	debugf("Total memory: %lld MB\n", bootInfo.mmTotal / 1024 / 1024);
 
 	halt();
-	
 }

@@ -47,7 +47,7 @@ void GetBootInfo()
 
 		if (entry->type != LIMINE_MEMMAP_RESERVED)
 		{
-			bootInfo.mmTotal += entry->base;
+			bootInfo.mmTotal += entry->length;
 		}
 	}
 }
