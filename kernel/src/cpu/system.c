@@ -1,9 +1,13 @@
 #include "system.h"
 #include <stdbool.h>
+#include <logging.h>
 
-void panic()
+void panic(const char* message)
 {
-	// TODO: Add printing the panic message
+	// Print the panic message first
+	// TODO: Be able to use this also like printf() to pass arguments
+	debugf("[KERNEL PANIC] %s\n", message);
+
 	asm volatile ("cli"); // Disable interrupts first
 	
 	// halt loop

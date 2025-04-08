@@ -29,7 +29,7 @@ void GetBootInfo()
 	// Check if it is actually a 4 levels page table
 	if (liminePagingRes->mode != LIMINE_PAGING_MODE_X86_64_4LVL)
 	{
-		panic();
+		panic("We don't have 4 levels page table!!!");
 	}
 
 	// HHDM
@@ -41,7 +41,7 @@ void GetBootInfo()
 	bootInfo.mmNumEntries = limineMMRes->entry_count;
 
 	// Calculate the total memory
-	for (int i = 0; i < limineMMRes->entry_count; i++)
+	for (uint64_t i = 0; i < limineMMRes->entry_count; i++)
 	{
 		struct limine_memmap_entry* entry = limineMMRes->entries[i];
 

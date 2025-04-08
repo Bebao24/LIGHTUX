@@ -1,5 +1,5 @@
 #pragma once
 
-void panic();
+void panic(const char* message);
 void halt();
 

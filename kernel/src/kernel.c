@@ -5,6 +5,7 @@
 #include <system.h>
 #include <boot.h>
 #include <logging.h>
+#include <fb.h>
 
 static volatile LIMINE_BASE_REVISION(3);
 
@@ -12,13 +13,22 @@ void kmain()
 {
 	if (LIMINE_BASE_REVISION_SUPPORTED == false)
 	{
-		panic();
+		panic("Limine base revision isn't supported!");
 	}
 
 	GetBootInfo();
 
-	debugf("Hello World!\n");
-	debugf("Total memory: %lld MB\n", bootInfo.mmTotal / 1024 / 1024);
+	InitializeFramebuffer(); // Limine mapped the framebuffer
+
+	// Some testing...
+	// Draw a red rectangle
+	for (uint64_t y = 0; y < 50; y++)
+	{
+		for (uint64_t x = 0; x < 100; x++)
+		{
+			fb_putPixel(x, y, COLOR(255, 0, 0));
+		}
+	}
 
 	halt();
 }
