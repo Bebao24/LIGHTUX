@@ -21,14 +21,10 @@ void kmain()
 	InitializeFramebuffer(); // Limine mapped the framebuffer
 
 	// Some testing...
+	fb_clearScreen(COLOR(0, 0, 255));
+
 	// Draw a red rectangle
-	for (uint64_t y = 0; y < 50; y++)
-	{
-		for (uint64_t x = 0; x < 100; x++)
-		{
-			fb_putPixel(x, y, COLOR(255, 0, 0));
-		}
-	}
+	fb_drawRect(50, 50, 100, 100, COLOR(255, 0, 0));
 
 	halt();
 }

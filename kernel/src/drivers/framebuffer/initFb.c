@@ -15,7 +15,7 @@ void getFBInfo()
     // Check if the framebuffer is avaliable
     if (limineFbReq.response == NULL || limineFbReq.response->framebuffer_count < 1)
     {
-        panic("Can't request for a framebuffer!\n");
+        panic("[FB] Can't request for a framebuffer!\n");
     }
 
     // Write the framebuffer's information
@@ -25,7 +25,7 @@ void getFBInfo()
     fb_height = limineFb->height;
     fb_pitch = limineFb->pitch;
 
-    debugf("Framebuffer information: %dx%dx%d\n", fb_width, fb_height, limineFb->bpp);
+    debugf("[FB] Framebuffer information: %dx%dx%d\n", fb_width, fb_height, limineFb->bpp);
 }
 
 
