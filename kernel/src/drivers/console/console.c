@@ -2,6 +2,7 @@
 #include <psf.h>
 #include <fb.h>
 #include <printf.h>
+#include <stdbool.h>
 
 // The reason that we used "int" instead of "uint32_t" is that we can check the number if it is < 0
 int g_ScreenX, g_ScreenY;
@@ -41,6 +42,41 @@ void console_clearScreen()
 	fb_clearScreen(BACKGROUND_COLOR);
 }
 
+bool show_cursor = true;
+
+void eraseCursor()
+{
+	if (!show_cursor)
+	{
+		return;
+	}
+
+	fb_drawRect(g_ScreenX, g_ScreenY, CHAR_WIDTH, CHAR_HEIGHT, BACKGROUND_COLOR);
+}
+
+void updateCursor()
+{
+	if (!show_cursor)
+	{
+		return;
+	}
+
+	if ((uint64_t)g_ScreenX >= fb_width)
+	{
+		// Create a new line
+		g_ScreenY += CHAR_HEIGHT;
+
+		if ((uint64_t)g_ScreenY >= fb_height)
+		{
+			console_clearScreen();
+		}
+
+		g_ScreenX = 0;
+	}
+
+	fb_drawRect(g_ScreenX, g_ScreenY, CHAR_WIDTH, CHAR_HEIGHT, FOREGROUND_COLOR);
+}
+
 void putc(char c)
 {
 	switch (c)
@@ -51,21 +87,26 @@ void putc(char c)
 			break;
 		case '\n':
 			// New line
+			eraseCursor();
 			g_ScreenX = 0;
 			g_ScreenY += CHAR_HEIGHT;
 			break;
 		case '\t':
 			// Tab (4 spaces)
+			eraseCursor();
 			for (int i = 0; i < 4 - (g_ScreenX % 4); i++)
 			{
 				putc(' ');
 			}
 			break;
 		default:
+			eraseCursor();
 			console_drawChar(c, g_ScreenX, g_ScreenY, FOREGROUND_COLOR);
 			g_ScreenX += CHAR_WIDTH;
 			break;
 	}
+
+	updateCursor();
 
 	// Check for screen overflow
 	if ((uint64_t)g_ScreenX >= fb_width)

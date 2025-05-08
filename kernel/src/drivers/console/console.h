@@ -16,3 +16,7 @@ void putc(char c);
 void puts(const char* string);
 void printf(const char* fmt, ...);
 
+// Cursor
+void eraseCursor();
+void updateCursor();
+
