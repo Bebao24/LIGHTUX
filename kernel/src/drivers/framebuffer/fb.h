@@ -1,7 +1,6 @@
 #pragma once
 #include <stdint.h>
-
-#define COLOR(r, g, b) ((r << 16) | (g << 8) | (b))
+#include <color.h>
 
 extern uint32_t* framebuffer;
 

@@ -26,10 +26,9 @@ void kmain()
 
 	InitializeConsole();
 
-	// Draw "Hi!" on the screen
-	console_drawChar('H', 50, 50, COLOR(255, 255, 255));
-	console_drawChar('i', 50 + 8, 50, COLOR(255, 255, 255));
-	console_drawChar('!', 50 + 16, 50, COLOR(255, 255, 255));
+	// Testing printf()
+	printf("Hello World!\n");
+	printf("It works because it can print out 0x%x\n", 0x123);
 
 	halt();
 }
