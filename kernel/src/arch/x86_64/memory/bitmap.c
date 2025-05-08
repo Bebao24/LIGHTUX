@@ -7,7 +7,7 @@ void InitializeBitmap(bitmap_t* bitmap, size_t bitmapSize, void* buffer)
     bitmap->bitmapSize = bitmapSize;
 
     // Direct mapping using the hhdm
-    bitmap->buffer = (uint8_t*)(buffer);
+    bitmap->buffer = (uint8_t*)(buffer + bootInfo.hhdmOffset);
     bitmap->lastDeepFragmented = 0;
 
     memset(bitmap->buffer, 0, bitmapSize);

@@ -31,25 +31,5 @@ void kmain()
 	printf("Hello World!\n");
 	printf("It works because it can print out 0x%x\n", 0x123);
 
-	uint8_t testArray[20];
-	bitmap_t testBitmap;
-
-	InitializeBitmap(&testBitmap, sizeof(testArray), testArray);
-
-	bitmap_Set(&testBitmap, 1, true);
-	bitmap_Set(&testBitmap, 3, true);
-	bitmap_Set(&testBitmap, 5, true);
-	bitmap_Set(&testBitmap, 8, true);
-	bitmap_Set(&testBitmap, 11, true);
-	bitmap_Set(&testBitmap, 15, true);
-	bitmap_Set(&testBitmap, 20, true);
-
-	for (int i = 0; i < 21; i++)
-	{
-		debugf(bitmap_Get(&testBitmap, i) ? "true" : "false");
-		debugf("\n");
-	}
-
-
 	halt();
 }
