@@ -40,6 +40,9 @@ void console_clearScreen()
 
 	// Clear the screen (or the framebuffer)
 	fb_clearScreen(BACKGROUND_COLOR);
+
+	// Finally, update the cursor
+	updateCursor();
 }
 
 bool show_cursor = true;
