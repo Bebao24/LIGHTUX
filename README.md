@@ -1,4 +1,4 @@
-# LiteUX
+# LightUX
 
 ## Purpose:
 This is a x86_64 hobby OS. Nothing much.
