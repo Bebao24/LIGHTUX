@@ -10,6 +10,7 @@
 #include <bitmap.h>
 #include <pmm.h>
 #include <vmm.h>
+#include <paging.h>
 #include <maths.h>
 
 static volatile LIMINE_BASE_REVISION(3);
@@ -35,12 +36,15 @@ void kmain()
 	printf("It works because it can print out 0x%x\n", 0x123);
 
 	InitializePMM();
+	InitializePaging();
 
-	debugf("Allocating results: \n");
-	debugf("1 page: 0x%llx\n", vmm_AllocatePage());
-	debugf("2 pages: 0x%llx\n", vmm_AllocatePages(2));
-	debugf("2 pages: 0x%llx\n", vmm_AllocatePages(2));
-	debugf("1 page: 0x%llx\n", vmm_AllocatePage());
+	// Test page mapping
+	uint64_t* testAddr = 0x1000000000000000000000000000000;
+	paging_MapPage(testAddr, pmm_AllocatePage(), PF_RW);
+
+	// Try writing to that address
+	*testAddr = 69;
+	debugf("Results: %d\n", *testAddr);
 
 	halt();
 }
