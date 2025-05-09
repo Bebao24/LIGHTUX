@@ -9,6 +9,7 @@
 #include <console.h>
 #include <bitmap.h>
 #include <pmm.h>
+#include <vmm.h>
 #include <maths.h>
 
 static volatile LIMINE_BASE_REVISION(3);
@@ -36,10 +37,10 @@ void kmain()
 	InitializePMM();
 
 	debugf("Allocating results: \n");
-	debugf("1 page: 0x%llx\n", pmm_AllocatePage());
-	debugf("2 pages: 0x%llx\n", pmm_AllocatePages(2));
-	debugf("2 pages: 0x%llx\n", pmm_AllocatePages(2));
-	debugf("1 page: 0x%llx\n", pmm_AllocatePage());
+	debugf("1 page: 0x%llx\n", vmm_AllocatePage());
+	debugf("2 pages: 0x%llx\n", vmm_AllocatePages(2));
+	debugf("2 pages: 0x%llx\n", vmm_AllocatePages(2));
+	debugf("1 page: 0x%llx\n", vmm_AllocatePage());
 
 	halt();
 }
