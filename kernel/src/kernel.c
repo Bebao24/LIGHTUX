@@ -34,9 +34,12 @@ void kmain()
 	printf("It works because it can print out 0x%x\n", 0x123);
 
 	InitializePMM();
-	debugf("Free memory: %lld KB\n", DivRoundUp(pmm_GetFreeMem(), 1024));
-	debugf("Used memory: %lld KB\n", DivRoundUp(pmm_GetUsedMem(), 1024));
-	debugf("Reserved memory: %lld KB\n", DivRoundUp(pmm_GetReservedMem(), 1024));
+
+	debugf("Allocating results: \n");
+	debugf("1 page: 0x%llx\n", pmm_AllocatePage());
+	debugf("2 pages: 0x%llx\n", pmm_AllocatePages(2));
+	debugf("2 pages: 0x%llx\n", pmm_AllocatePages(2));
+	debugf("1 page: 0x%llx\n", pmm_AllocatePage());
 
 	halt();
 }
