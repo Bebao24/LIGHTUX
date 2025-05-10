@@ -25,10 +25,6 @@ void kmain()
 	GetBootInfo();
 
 	InitializeFramebuffer(); // Limine mapped the framebuffer
-
-	// Some testing...
-	fb_clearScreen(COLOR(0, 0, 255));
-
 	InitializeConsole();
 
 	// Testing printf()

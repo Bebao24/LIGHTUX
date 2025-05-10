@@ -28,7 +28,7 @@ void vmm_FreePages(void* addr, size_t numPages)
     uint64_t physicalAddr = (uint64_t)paging_VirtToPhysical(addr);
     if (!physicalAddr)
     {
-        panic("[VMM] Can't find the physical address!\n");
+        panic("[VMM] Can't find the physical address %llx!\n", addr);
     }
 
     pmm_FreePages((void*)physicalAddr, numPages);
