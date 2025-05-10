@@ -38,16 +38,12 @@ void kmain()
 	InitializePMM();
 	InitializePaging();
 
-	// Test page mapping
-	uint64_t* testAddr = 0x1000000000000000000000000000000;
-	paging_MapPage(testAddr, (void*)0x10000, PF_RW);
-
-	// Try writing to that address
-	*testAddr = 69;
-	debugf("Results: %d\n", *testAddr);
-
-	// Should be 0x10000
-	debugf("Physical address: 0x%x\n", paging_VirtToPhysical(testAddr));
+	// Test vmm free address
+	void* testResult = vmm_AllocatePages(2);
+	debugf("Test result: %llx\n", testResult);
+	debugf("Test result: %llx\n", vmm_AllocatePages(2));
+	vmm_FreePages(testResult, 2);
+	debugf("Test result: %llx\n", vmm_AllocatePages(2));
 
 	halt();
 }
