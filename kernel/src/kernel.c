@@ -40,11 +40,14 @@ void kmain()
 
 	// Test page mapping
 	uint64_t* testAddr = 0x1000000000000000000000000000000;
-	paging_MapPage(testAddr, pmm_AllocatePage(), PF_RW);
+	paging_MapPage(testAddr, (void*)0x10000, PF_RW);
 
 	// Try writing to that address
 	*testAddr = 69;
 	debugf("Results: %d\n", *testAddr);
+
+	// Should be 0x10000
+	debugf("Physical address: 0x%x\n", paging_VirtToPhysical(testAddr));
 
 	halt();
 }

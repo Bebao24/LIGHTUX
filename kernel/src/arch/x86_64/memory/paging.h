@@ -35,5 +35,5 @@
 void InitializePaging();
 
 void paging_MapPage(void* virtAddr, void* physicalAddr, uint64_t flags);
-
+void* paging_VirtToPhysical(void* virtAddr);
 
