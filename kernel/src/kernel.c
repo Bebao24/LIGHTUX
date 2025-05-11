@@ -12,6 +12,7 @@
 #include <vmm.h>
 #include <paging.h>
 #include <maths.h>
+#include <heap.h>
 
 static volatile LIMINE_BASE_REVISION(3);
 
@@ -33,13 +34,11 @@ void kmain()
 
 	InitializePMM();
 	InitializePaging();
+	InitializeHeap(HEAP_SIZE_IN_PAGES);
 
-	// Test vmm free address
-	void* testResult = vmm_AllocatePages(2);
-	debugf("Test result: %llx\n", testResult);
-	debugf("Test result: %llx\n", vmm_AllocatePages(2));
-	vmm_FreePages(testResult, 2);
-	debugf("Test result: %llx\n", vmm_AllocatePages(2));
+	// Heap test
+	void* address = malloc(0x10);
+	debugf("Result: 0x%llx\n", address);
 
 	halt();
 }
