@@ -13,6 +13,7 @@
 #include <paging.h>
 #include <maths.h>
 #include <heap.h>
+#include <gdt.h>
 
 static volatile LIMINE_BASE_REVISION(3);
 
@@ -36,14 +37,7 @@ void kmain()
 	InitializePaging();
 	InitializeHeap(HEAP_SIZE_IN_PAGES);
 
-	// Heap test
-	debugf("Results: 0x%llx\n", malloc(0x100));
-	debugf("Results: 0x%llx\n", malloc(0x80000));
-
-	void* addr = malloc(0x100);
-	debugf("Results: 0x%llx\n", addr);
-	free(addr);
-	debugf("Results: 0x%llx\n", malloc(0x100));
+	InitializeGDT();
 
 
 	halt();

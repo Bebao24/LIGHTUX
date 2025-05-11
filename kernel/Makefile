@@ -15,8 +15,12 @@ TARGET_CFLAGS += -I ../libs -I ../libs/boot -I src/cpu -I src -I src/qemu -I src
 C_SOURCES := $(shell find src -name "*.c")
 C_OBJECTS := $(patsubst src/%.c, $(BUILD_DIR)/kernel/x86_64/%.o, $(C_SOURCES))
 
+ASM_SOURCES := $(shell find src -name "*.asm")
+ASM_OBJECTS := $(patsubst src/%.asm, $(BUILD_DIR)/kernel/x86_64/%_asm.o, $(ASM_SOURCES))
+
 ## TODO: Change this in the future
 C_HEADERS := $(shell find src -name "*.h")
+ASM_HEADERS := $(shell find src -name "*.inc")
 
 TARGET_DIR = ../target
 
@@ -25,7 +29,7 @@ TARGET_DIR = ../target
 all: kernel
 
 kernel: $(TARGET_DIR)/boot/kernel.bin
-$(TARGET_DIR)/boot/kernel.bin: $(C_OBJECTS)
+$(TARGET_DIR)/boot/kernel.bin: $(C_OBJECTS) $(ASM_OBJECTS)
 	@ mkdir -p $(TARGET_DIR)/boot
 	$(TARGET_LD) $(TARGET_LINKFLAGS) -o $(BUILD_DIR)/kernel/kernel.bin $^ $(TARGET_LIBS)
 	cp $(BUILD_DIR)/kernel/kernel.bin $@
@@ -33,6 +37,10 @@ $(TARGET_DIR)/boot/kernel.bin: $(C_OBJECTS)
 $(BUILD_DIR)/kernel/x86_64/%.o: src/%.c $(C_HEADERS)
 	@ mkdir -p $(@D)
 	$(TARGET_CC) $(TARGET_CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/kernel/x86_64/%_asm.o: src/%.asm $(ASM_HEADERS)
+	@ mkdir -p $(dir $@)
+	$(TARGET_ASM) $(TARGET_ASMFLAGS) -o $@ $<
 
 clean:
 	rm -rf $(BUILD_DIR)/kernel/*
