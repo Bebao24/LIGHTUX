@@ -28,6 +28,30 @@ void InitializeHeap(size_t numPages)
     lastNode->free = true;
 }
 
+void SplitNode(HeapNode_t* node, size_t splitSize)
+{
+    if (splitSize < HEAP_ALIGNMENT)
+    {
+        return;
+    }
+
+    HeapNode_t* newNode = (HeapNode_t*)((void*)node + splitSize + sizeof(HeapNode_t));
+
+    newNode->size = node->size - splitSize - sizeof(HeapNode_t);
+    newNode->free = true;
+    newNode->next = node->next;
+
+    node->size = splitSize;
+    node->free = false;
+    node->next = newNode;
+
+    if (lastNode == node)
+    {
+        // Assign it to "newNode" since it is next to "node"
+        lastNode = newNode;
+    }
+}
+
 void* malloc(size_t size)
 {
     HeapNode_t* currentNode = (HeapNode_t*)heapStart;
@@ -50,7 +74,8 @@ void* malloc(size_t size)
                 // Found a free node that is free and large enough
                 if (currentNode->size > size)
                 {
-                    // TODO: Split the node
+                    // Split the node
+                    SplitNode(currentNode, size);
                     currentNode->free = false;
                     currentNode->size = size;
                 }
@@ -64,6 +89,10 @@ void* malloc(size_t size)
         }
 
         // TODO: Check for heap overflow and expand heap
+        if (currentNode == lastNode)
+        {
+            break;
+        }
 
         currentNode = currentNode->next;
     }

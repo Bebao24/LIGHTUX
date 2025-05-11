@@ -37,8 +37,9 @@ void kmain()
 	InitializeHeap(HEAP_SIZE_IN_PAGES);
 
 	// Heap test
-	void* address = malloc(0x10);
-	debugf("Result: 0x%llx\n", address);
+	debugf("Results: 0x%llx\n", malloc(0x100));
+	debugf("Results: 0x%llx\n", malloc(0x100));
+	debugf("Results: 0x%llx\n", malloc(0x100));
 
 	halt();
 }
