@@ -52,6 +52,26 @@ void SplitNode(HeapNode_t* node, size_t splitSize)
     }
 }
 
+void ExpandHeap(size_t size)
+{
+    // Align it to pagess
+    size = align(size, PAGE_SIZE);
+    debugf("[HEAP] Expanding heap with size: 0x%llx\n", size);
+
+    size_t numPages = DivRoundUp(size, PAGE_SIZE);
+    HeapNode_t* newNode = (HeapNode_t*)vmm_AllocatePages(numPages);
+
+    debugf("[HEAP] New heap address: 0x%llx\n", (uint64_t)newNode);
+
+    newNode->next = NULL;
+    newNode->last = lastNode;
+    newNode->size = numPages * PAGE_SIZE;
+    newNode->free = true;
+
+    lastNode->next = newNode;
+    lastNode = newNode;
+}
+
 void* malloc(size_t size)
 {
     HeapNode_t* currentNode = (HeapNode_t*)heapStart;
@@ -88,15 +108,20 @@ void* malloc(size_t size)
             }
         }
 
-        // TODO: Check for heap overflow and expand heap
         if (currentNode == lastNode)
         {
-            break;
+            // Expand the heap
+            ExpandHeap(size);
+            if (currentNode->last != NULL)
+            {
+                currentNode = currentNode->last;
+            }
         }
 
         currentNode = currentNode->next;
     }
 
+    // Should never get here
     return NULL;
 }
 
