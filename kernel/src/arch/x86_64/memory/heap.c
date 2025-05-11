@@ -72,6 +72,41 @@ void ExpandHeap(size_t size)
     lastNode = newNode;
 }
 
+void CombineForward(HeapNode_t* node)
+{
+    // Check for the next node
+    if (node->next == NULL)
+    {
+        return;
+    }
+
+    if (!node->next->free)
+    {
+        return;
+    }
+
+    if (node->next == lastNode)
+    {
+        lastNode = node;
+    }
+
+    if (node->next->next != NULL)
+    {
+        node->next->next->last = node;
+    }
+
+    node->size = node->size + node->next->size + sizeof(HeapNode_t);
+    node->next = node->next->next;
+}
+
+void CombineBackward(HeapNode_t* node)
+{
+    if (node->last != NULL && node->last->free)
+    {
+        CombineBackward(node->last);
+    }
+}
+
 void* malloc(size_t size)
 {
     HeapNode_t* currentNode = (HeapNode_t*)heapStart;
@@ -123,5 +158,18 @@ void* malloc(size_t size)
 
     // Should never get here
     return NULL;
+}
+
+void free(void* ptr)
+{
+    if (ptr == NULL)
+    {
+        return;
+    }
+
+    HeapNode_t* node = (HeapNode_t*)ptr - 1;
+    node->free = true;
+    CombineForward(node);
+    CombineBackward(node);
 }
 

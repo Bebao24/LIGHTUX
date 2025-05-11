@@ -39,7 +39,10 @@ void kmain()
 	// Heap test
 	debugf("Results: 0x%llx\n", malloc(0x100));
 	debugf("Results: 0x%llx\n", malloc(0x80000));
-	debugf("Results: 0x%llx\n", malloc(0x100));
+
+	void* addr = malloc(0x100);
+	debugf("Results: 0x%llx\n", addr);
+	free(addr);
 	debugf("Results: 0x%llx\n", malloc(0x100));
 
 
