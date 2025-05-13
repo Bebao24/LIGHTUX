@@ -11,9 +11,9 @@
 #include <pmm.h>
 #include <vmm.h>
 #include <paging.h>
-#include <maths.h>
 #include <heap.h>
 #include <gdt.h>
+#include <idt.h>
 
 static volatile LIMINE_BASE_REVISION(3);
 
@@ -38,7 +38,7 @@ void kmain()
 	InitializeHeap(HEAP_SIZE_IN_PAGES);
 
 	InitializeGDT();
-
+	InitializeIDT();
 
 	halt();
 }
