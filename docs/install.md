@@ -1,10 +1,11 @@
 ## Build environment
 ### Windows
-I would suggest to go with WSL2. Please go to this website to read a guide on how to setup WSL2: [https://learn.microsoft.com/en-us/windows/wsl/install](https://learn.microsoft.com/en-us/windows/wsl/install) <br>
+I would suggest to go with **WSL2** or even a **VM**. Please go to this [website](https://learn.microsoft.com/en-us/windows/wsl/install) to know how to install WSL2. <br>
 
 ### MacOS
-I've never used MacOS before since I don't own a Mac. I know that MAC is also unix-like. I would suggest using a linux VM or use docker. <br>
-In the future, I would try to add MacOS support.
+I've never used MacOS before since I don't own a Mac. I know that MacOS is also unix-like so building the OS will be fine but disk creation won't work. <br> <br>
+I would suggest using a **linux VM** or use **docker**. <br>
+In the future, I will try to add MacOS support. <br>
 
 ### GNU/Linux
 This is the OS that LightUX's build system supports. It is generally the best option for building LightUX. <br>
@@ -33,6 +34,6 @@ However, ``make run`` will require QEMU and working graphics on your host
 dd if=bin/disk.img of=/dev/sdX bs=1M
 ```
 
-Please replace the /dev/sdX with the storage device that you want to install the OS on
+Please replace the ```/dev/sdX``` with the storage device that you want to install the OS on
 
 
