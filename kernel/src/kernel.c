@@ -14,6 +14,7 @@
 #include <heap.h>
 #include <gdt.h>
 #include <idt.h>
+#include <isr.h>
 
 static volatile LIMINE_BASE_REVISION(3);
 
@@ -39,6 +40,12 @@ void kmain()
 
 	InitializeGDT();
 	InitializeIDT();
+	InitializeISR();
+
+	// Panic testing...
+	int value = 1 / 0;
+	// uint64_t* overflow = 0x900000000000000000000000000000000000000000000000000000;
+	// *overflow = 69;
 
 	halt();
 }

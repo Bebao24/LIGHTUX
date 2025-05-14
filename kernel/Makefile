@@ -1,4 +1,4 @@
-TARGET_ASMFLAGS += -felf64
+TARGET_ASMFLAGS += -felf64 -I src
 TARGET_CFLAGS += -Wall -Wextra -ffreestanding -fno-stack-protector -fno-stack-check \
 				-mno-80387 -mno-mmx -mno-sse -mno-sse2 -mno-red-zone -mcmodel=large
 

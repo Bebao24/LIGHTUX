@@ -13,6 +13,9 @@ void panic(const char* message, ...)
 	// Clear the screen
 	console_clearScreen();
 
+	// Announce that the kernel panic in the host console
+	debugf("[KERNEL] KERNEL PANIC!!! ");
+
 	// Print the panic message
 	va_list args;
 	va_start(args, message);
@@ -22,7 +25,11 @@ void panic(const char* message, ...)
 	va_end(args);
 
 	// Display the "KERNEL PANIC" on the screen
-	printf("Kernel panic!!!\n");
+	printf(" _  _______ ____  _   _ _____ _       ____   _    _   _ ___ ____\n"
+		"| |/ / ____|  _ \\| \\ | | ____| |     |  _ \\ / \\  | \\ | |_ _/ ___|\n"
+		"| ' /|  _| | |_) |  \\| |  _| | |     | |_) / _ \\ |  \\| || | |    \n"
+		"| . \\| |___|  _ <| |\\  | |___| |___  |  __/ ___ \\| |\\  || | |___ \n"
+		"|_|\\_\\_____|_| \\_\\_| \\_|_____|_____| |_| /_/   \\_\\_| \\_|___\\____|\n");
 	printf("Please try to restart your computer\n");
 	
 	// halt loop

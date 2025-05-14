@@ -1,0 +1,77 @@
+#include "isr.h"
+#include <console.h>
+#include <logging.h>
+#include <idt.h>
+#include <stddef.h>
+#include <system.h>
+
+ISRHandler g_ISRHandlers[ISR_ENTRIES];
+
+// A list of all possible exceptions...
+static const char* const g_Exceptions[] = {
+    "Divide by zero error",
+    "Debug",
+    "Non-maskable Interrupt",
+    "Breakpoint",
+    "Overflow",
+    "Bound Range Exceeded",
+    "Invalid Opcode",
+    "Device Not Available",
+    "Double Fault",
+    "Coprocessor Segment Overrun",
+    "Invalid TSS",
+    "Segment Not Present",
+    "Stack-Segment Fault",
+    "General Protection Fault",
+    "Page Fault",
+    "",
+    "x87 Floating-Point Exception",
+    "Alignment Check",
+    "Machine Check",
+    "SIMD Floating-Point Exception",
+    "Virtualization Exception",
+    "Control Protection Exception ",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "Hypervisor Injection Exception",
+    "VMM Communication Exception",
+    "Security Exception",
+    ""
+};
+
+void interrupt_handler(cpu_registers_t* cpu_status)
+{
+    if (g_ISRHandlers[cpu_status->interrupt_number] != NULL)
+    {
+        g_ISRHandlers[cpu_status->interrupt_number](cpu_status);
+    }
+    else if (cpu_status->interrupt_number >= 32)
+    {
+        // Probably an IRQ or syscall
+        debugf("Unhandled interrupt: 0x%x\n", cpu_status->interrupt_number);
+    }
+    else
+    {
+        // If the interrupt number < 32 then it is an exception triggered by the CPU
+        // TODO: Print out all the registers' value
+        panic("Exception: %s\n", g_Exceptions[cpu_status->interrupt_number]);
+
+    }
+}
+
+void InitializeISR()
+{
+    for (int i = 0; i < 32; i++)
+    {
+        IDT_SetGate(i, (uint64_t)isr_stub_table[i], 0x8E);
+    }
+}
+
+void ISR_RegisterHandler(int interrupt, ISRHandler handler)
+{
+    g_ISRHandlers[interrupt] = handler;
+}
