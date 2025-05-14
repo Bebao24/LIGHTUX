@@ -42,10 +42,5 @@ void kmain()
 	InitializeIDT();
 	InitializeISR();
 
-	// Panic testing...
-	int value = 1 / 0;
-	// uint64_t* overflow = 0x900000000000000000000000000000000000000000000000000000;
-	// *overflow = 69;
-
 	halt();
 }
