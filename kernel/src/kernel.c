@@ -15,6 +15,8 @@
 #include <gdt.h>
 #include <idt.h>
 #include <isr.h>
+#include <irq.h>
+#include <pic.h>
 
 static volatile LIMINE_BASE_REVISION(3);
 
@@ -41,6 +43,10 @@ void kmain()
 	InitializeGDT();
 	InitializeIDT();
 	InitializeISR();
+	InitializeIRQ();
+
+	// If we don't mask the PIT, it will keep spaming us
+	PIC_MaskIRQ(0);
 
 	halt();
 }

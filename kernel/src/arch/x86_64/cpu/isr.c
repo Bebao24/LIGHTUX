@@ -4,6 +4,7 @@
 #include <idt.h>
 #include <stddef.h>
 #include <system.h>
+#include <pic.h>
 
 ISRHandler g_ISRHandlers[ISR_ENTRIES];
 
@@ -52,23 +53,27 @@ void interrupt_handler(cpu_registers_t* cpu_status)
     else if (cpu_status->interrupt_number >= 32)
     {
         // Probably an IRQ or syscall
-        debugf("Unhandled interrupt: 0x%x\n", cpu_status->interrupt_number);
+        debugf("[ISR] Unhandled interrupt: 0x%x\n", cpu_status->interrupt_number);
     }
     else
     {
         // If the interrupt number < 32 then it is an exception triggered by the CPU
         // TODO: Print out all the registers' value
-        panic("Exception: %s\n", g_Exceptions[cpu_status->interrupt_number]);
-
+        panic("[ISR] Exception: %s\n", g_Exceptions[cpu_status->interrupt_number]);
     }
 }
 
 void InitializeISR()
 {
-    for (int i = 0; i < 32; i++)
+    PIC_Remap(PIC_REMAP_OFFSET, PIC_REMAP_OFFSET + 8);
+
+    for (int i = 0; i < 48; i++)
     {
         IDT_SetGate(i, (uint64_t)isr_stub_table[i], 0x8E);
     }
+
+    // Re-enable interrupts
+    asm volatile ("sti");
 }
 
 void ISR_RegisterHandler(int interrupt, ISRHandler handler)
