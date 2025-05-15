@@ -20,6 +20,13 @@
 
 static volatile LIMINE_BASE_REVISION(3);
 
+void IRQTimerHandler(cpu_registers_t* cpu_status)
+{
+	// Stop the PIT from spamming us
+	(void)cpu_status;
+	return;
+}
+
 void kmain()
 {
 	if (LIMINE_BASE_REVISION_SUPPORTED == false)
@@ -45,8 +52,7 @@ void kmain()
 	InitializeISR();
 	InitializeIRQ();
 
-	// If we don't mask the PIT, it will keep spaming us
-	PIC_MaskIRQ(0);
+	IRQ_RegisterHandler(0, IRQTimerHandler);
 
 	halt();
 }

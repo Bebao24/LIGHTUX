@@ -17,11 +17,7 @@ void IRQ_Handler(cpu_registers_t* cpu_status)
     else
     {
         // Unhandled IRQ
-        // For some reason, I can't mask the PIT
-        if (irq != 0)
-        {
-            debugf("[IRQ] Unhandled IRQ: %d\n", irq);
-        }
+        debugf("[IRQ] Unhandled IRQ: %d\n", irq);
     }
 
     PIC_SendEOI(irq);
