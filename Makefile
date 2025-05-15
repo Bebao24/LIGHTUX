@@ -26,3 +26,4 @@ run:
 
 clean:
 	@ $(MAKE) -C kernel clean
+	@ rm -rf bin/disk.img

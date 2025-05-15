@@ -11,7 +11,7 @@ fi
 SCRIPT=$(realpath "$0")
 SCRIPT_PATH=$(dirname "$SCRIPT")
 
-if [ test -f /dev/loop101 ]; then
+if test -f /dev/loop101; then
     echo "/dev/loop101 is assigned for somethings"
     exit 1
 fi
