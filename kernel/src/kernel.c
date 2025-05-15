@@ -17,6 +17,7 @@
 #include <isr.h>
 #include <irq.h>
 #include <pic.h>
+#include <keyboard.h>
 
 static volatile LIMINE_BASE_REVISION(3);
 
@@ -53,6 +54,8 @@ void kmain()
 	InitializeIRQ();
 
 	IRQ_RegisterHandler(0, IRQTimerHandler);
+
+	InitializeKeyboard();
 
 	halt();
 }
