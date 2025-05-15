@@ -4,6 +4,8 @@
 #include <irq.h>
 #include <kb_translate.h>
 
+static bool uppercase = false;
+
 void InitializeKeyboard()
 {
     // Register the IRQ handler
@@ -18,7 +20,24 @@ void IRQKeyboardHandler(cpu_registers_t* cpu_status)
     // Read the scancode from the PS2 port
     uint8_t scancode = x64_inb(PS2_KEYBOARD_PORT);
 
-    char key = TranslateToASCII(scancode, false);
+    switch (scancode)
+    {
+        case LeftShift:
+            uppercase = true;
+            return;
+        case LeftShift + 0x80:
+            // Left shift released
+            uppercase = false;
+            return;
+        case RightShift:
+            uppercase = true;
+            return;
+        case RightShift + 0x80:
+            uppercase = false;
+            return;
+    }
+
+    char key = TranslateToASCII(scancode, uppercase);
 
     if (key != 0)
     {

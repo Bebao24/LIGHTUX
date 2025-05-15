@@ -1,4 +1,5 @@
 #include "kb_translate.h"
+#include <logging.h>
 
 const char ASCIITable[] = {
 	0 ,  0 , '1', '2',
@@ -24,7 +25,61 @@ char TranslateToASCII(uint8_t scancode, bool uppercase)
 
     if (uppercase)
     {
-        // TODO: Handle uppercase
+        char lowerASCII = ASCIITable[scancode];
+
+        if (lowerASCII <= 'z' && lowerASCII >= 'a')
+        {
+            // A character in the alphabet
+            return lowerASCII - 0x20;
+        }
+
+        switch (lowerASCII)
+        {
+            case '1':
+                return '!';
+            case '2':
+                return '@';
+            case '3':
+                return '#';
+            case '4':
+                return '$';
+            case '5':
+                return '%';
+            case '6':
+                return '^';
+            case '7':
+                return '&';
+            case '8':
+                return '*';
+            case '9':
+                return '(';
+            case '0':
+                return ')';
+
+            case ';':
+                return ':';
+            case '[':
+                return '{';
+            case ']':
+                return '}';
+            case '\'':
+                return '\"';
+
+            case '-':
+                return '_';
+            case '=':
+                return '+';
+            case '\\':
+                return '|';
+            case ',':
+                return '<';
+            case '.':
+                return '>';
+            case '/':
+                return '?';
+            case '`':
+                return '~';
+        }
     }
 
     return ASCIITable[scancode];
