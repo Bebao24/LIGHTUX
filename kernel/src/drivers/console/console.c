@@ -105,6 +105,13 @@ void putc(char c)
 		case '\b':
 			eraseCursor();
 
+			// Break if there is no space left
+			if (g_ScreenX <= 0 && g_ScreenY <= 0)
+			{
+				updateCursor();
+				return;
+			}
+
 			// Backspace
 			if (g_ScreenX <= 0 && g_ScreenY >= 0)
 			{
@@ -113,12 +120,7 @@ void putc(char c)
 				g_ScreenY -= CHAR_HEIGHT;
 			}
 
-			// Break if there is no space left
-			if (g_ScreenX <= CHAR_WIDTH && g_ScreenY <= 0)
-			{
-				updateCursor();
-				return;
-			}
+			
 
 			g_ScreenX -= CHAR_WIDTH;
 			// Use a rectangle to overwrite the text
