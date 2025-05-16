@@ -13,3 +13,5 @@ typedef struct
 void InitializeKeyboard();
 void IRQKeyboardHandler(cpu_registers_t* cpu_status);
 
+char GetKey();
+

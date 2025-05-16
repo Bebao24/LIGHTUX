@@ -41,6 +41,12 @@ void IRQKeyboardHandler(cpu_registers_t* cpu_status)
         case RightShift + 0x80:
             g_KeyInfo->uppercase = false;
             return;
+        case Enter:
+            g_KeyInfo->key = '\r';
+            return;
+        case BackSpace:
+            g_KeyInfo->key = '\b';
+            return;
     }
 
     char key = TranslateToASCII(scancode, g_KeyInfo->uppercase);
@@ -51,5 +57,18 @@ void IRQKeyboardHandler(cpu_registers_t* cpu_status)
     }
 
     return;
+}
+
+char GetKey()
+{
+    while (!g_KeyInfo->key)
+    {
+        asm volatile ("hlt");
+    }
+
+    char key = g_KeyInfo->key;
+    g_KeyInfo->key = 0;
+
+    return key;
 }
 

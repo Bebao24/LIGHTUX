@@ -57,5 +57,17 @@ void kmain()
 
 	InitializeKeyboard();
 
+	while (true)
+	{
+		char key = GetKey();
+
+		if (key == '\r')
+		{
+			printf("\n");
+		}
+
+		putc(key);
+	}
+
 	halt();
 }
