@@ -19,6 +19,7 @@
 #include <pic.h>
 #include <keyboard.h>
 #include <timer.h>
+#include <task.h>
 
 static volatile LIMINE_BASE_REVISION(3);
 
@@ -50,11 +51,7 @@ void kmain()
 	InitializeKeyboard();
 	InitializeTimer();
 
-	for (int i = 0; i < 10; i++)
-	{
-		sleep(100);
-		putc('G');
-	}
+	InitializeTask();
 
 	while (true)
 	{

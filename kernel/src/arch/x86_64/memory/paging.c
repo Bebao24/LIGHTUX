@@ -1,9 +1,11 @@
 #include "paging.h"
 #include <stddef.h>
 #include <pmm.h>
+#include <vmm.h>
 #include <system.h>
 #include <boot.h>
 #include <memory.h>
+#include <task.h>
 
 uint64_t* g_PageDir = NULL;
 
@@ -30,6 +32,32 @@ uint64_t paging_PhysicalAllocate()
     memset(virtAddr, 0, PAGE_SIZE);
 
     return physicalAddr;
+}
+
+uint64_t* AllocateKernelPD()
+{
+    // Allocate a pd and then copy the kernel's pd
+    if (!taskInitialized)
+    {
+        panic("[PAGING] Can't allocate pd without multitasking initialized!\n");
+    }
+
+    uint64_t* out = vmm_AllocatePage();
+
+    // Get the kernel's pd
+    uint64_t* target = TaskGet(TASK_KERNEL_ID)->pageDir;
+
+    for (int i = 0; i < 512; i++)
+    {
+        out[i] = target[i];
+    }
+
+    return out;
+}
+
+uint64_t* GetPageDir()
+{
+    return (uint64_t*)g_PageDir;
 }
 
 void invalidate(uint64_t virtualAddr)
