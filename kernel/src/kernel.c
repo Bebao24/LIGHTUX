@@ -18,15 +18,9 @@
 #include <irq.h>
 #include <pic.h>
 #include <keyboard.h>
+#include <timer.h>
 
 static volatile LIMINE_BASE_REVISION(3);
-
-void IRQTimerHandler(cpu_registers_t* cpu_status)
-{
-	// Stop the PIT from spamming us
-	(void)cpu_status;
-	return;
-}
 
 void kmain()
 {
@@ -53,9 +47,14 @@ void kmain()
 	InitializeISR();
 	InitializeIRQ();
 
-	IRQ_RegisterHandler(0, IRQTimerHandler);
-
 	InitializeKeyboard();
+	InitializeTimer();
+
+	for (int i = 0; i < 10; i++)
+	{
+		sleep(100);
+		putc('G');
+	}
 
 	while (true)
 	{
