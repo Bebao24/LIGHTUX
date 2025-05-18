@@ -39,3 +39,7 @@ void* paging_VirtToPhysical(void* virtAddr);
 
 uint64_t* GetPageDir();
 uint64_t* paging_AllocatePD();
+
+void ChangePageDirUnsafe(uint64_t* pd);
+void ChangePageDirFake(uint64_t* pd);
+void ChangePageDir(uint64_t* pd);

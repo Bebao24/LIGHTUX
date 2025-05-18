@@ -34,7 +34,7 @@ uint64_t paging_PhysicalAllocate()
     return physicalAddr;
 }
 
-uint64_t* AllocateKernelPD()
+uint64_t* paging_AllocatePD()
 {
     // Allocate a pd and then copy the kernel's pd
     if (!taskInitialized)
@@ -53,6 +53,44 @@ uint64_t* AllocateKernelPD()
     }
 
     return out;
+}
+
+// Will not check for task
+void ChangePageDirUnsafe(uint64_t* pd)
+{
+    uint64_t target = (uint64_t)paging_VirtToPhysical((void*)pd);
+
+    if (!target)
+    {
+        panic("[PAGING] Can't change to pd: 0x%llx\n", pd);
+    }
+
+    asm volatile("movq %0, %%cr3" ::"r"(target));
+    g_PageDir = pd;
+}
+
+// Only modify the g_PageDir, not cr3
+void ChangePageDirFake(uint64_t* pd)
+{
+    uint64_t target = (uint64_t)paging_VirtToPhysical((void*)pd);
+
+    if (!target)
+    {
+        panic("[PANIC] Can't change g_PageDir to pd: 0x%llx\n", pd);
+    }
+
+    g_PageDir = pd;
+}
+
+void ChangePageDir(uint64_t* pd)
+{
+    // Check for task
+    if (taskInitialized)
+    {
+        currentTask->pageDir = pd;
+    }
+
+    ChangePageDirUnsafe(pd);
 }
 
 uint64_t* GetPageDir()
