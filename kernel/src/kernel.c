@@ -25,10 +25,7 @@ static volatile LIMINE_BASE_REVISION(3);
 
 void test1()
 {
-	for (int i = 0; i < 10; i++)
-	{
-		debugf("g");
-	}
+	debugf("Hello World from task1!\n");
 
 	while (true)
 	{
@@ -37,10 +34,7 @@ void test1()
 
 void test2()
 {
-	for (int i = 0; i < 10; i++)
-	{
-		debugf("f");
-	}
+	debugf("Hello World from task2!\n");
 
 	while (true)
 	{

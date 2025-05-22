@@ -4,6 +4,7 @@
 #include <logging.h>
 #include <stdint.h>
 #include <maths.h>
+#include <spinlock.h>
 
 void* heapStart;
 HeapNode_t* lastNode;
@@ -107,16 +108,19 @@ void CombineBackward(HeapNode_t* node)
     }
 }
 
+spinlock_t HEAP_LOCK;
+
 void* malloc(size_t size)
 {
-    HeapNode_t* currentNode = (HeapNode_t*)heapStart;
-
     if (size == 0)
     {
         debugf("[HEAP] Can't allocate with size 0!\n");
         return NULL;
     }
 
+    spinlockAcquire(&HEAP_LOCK);
+
+    HeapNode_t* currentNode = (HeapNode_t*)heapStart;
     // Align the size
     size = align(size, HEAP_ALIGNMENT);
 
@@ -139,6 +143,7 @@ void* malloc(size_t size)
                     currentNode->free = false;
                 }
 
+                spinlockRelease(&HEAP_LOCK);
                 return (void*)currentNode + sizeof(HeapNode_t);
             }
         }
@@ -156,6 +161,8 @@ void* malloc(size_t size)
         currentNode = currentNode->next;
     }
 
+    spinlockRelease(&HEAP_LOCK);
+
     // Should never get here
     return NULL;
 }
@@ -167,9 +174,13 @@ void free(void* ptr)
         return;
     }
 
+    spinlockAcquire(&HEAP_LOCK);
+
     HeapNode_t* node = (HeapNode_t*)ptr - 1;
     node->free = true;
     CombineForward(node);
     CombineBackward(node);
+
+    spinlockRelease(&HEAP_LOCK);
 }
 

@@ -4,6 +4,7 @@
 #include <limine.h>
 #include <system.h>
 #include <bitmap.h>
+#include <spinlock.h>
 
 /* These operations shouldn't be used outside of initializing the pmm */
 void pmm_ReservePage(void* addr);
@@ -65,6 +66,8 @@ void InitializePMM()
     pmm_ReservePages(0, 0x10); // Reserve the important pages
     pmm_LockPages(largestMemSeg, g_PhysicalBitmap.bitmapSize / PAGE_SIZE + 1);
 }
+
+spinlock_t PMM_LOCK;
 
 void pmm_LockPage(void* addr)
 {
@@ -134,34 +137,42 @@ void pmm_UnreservePage(void* addr)
 
 void pmm_LockPages(void* addr, size_t numPages)
 {
+    spinlockAcquire(&PMM_LOCK);
     for (size_t i = 0; i < numPages; i++)
     {
         pmm_LockPage((void*)((uint64_t)addr + (i * PAGE_SIZE)));
     }
+    spinlockRelease(&PMM_LOCK);
 }
 
 void pmm_FreePages(void* addr, size_t numPages)
 {
+    spinlockAcquire(&PMM_LOCK);
     for (size_t i = 0; i < numPages; i++)
     {
         pmm_FreePage((void*)((uint64_t)addr + (i * PAGE_SIZE)));
     }
+    spinlockRelease(&PMM_LOCK);
 }
 
 void pmm_ReservePages(void* addr, size_t numPages)
 {
+    spinlockAcquire(&PMM_LOCK);
     for (size_t i = 0; i < numPages; i++)
     {
         pmm_ReservePage((void*)((uint64_t)addr + (i * PAGE_SIZE)));
     }
+    spinlockRelease(&PMM_LOCK);
 }
 
 void pmm_UnreservePages(void* addr, size_t numPages)
 {
+    spinlockAcquire(&PMM_LOCK);
     for (size_t i = 0; i < numPages; i++)
     {
         pmm_UnreservePage((void*)((uint64_t)addr + (i * PAGE_SIZE)));
     }
+    spinlockRelease(&PMM_LOCK);
 }
 
 uint64_t pmm_FindFreeRegion(size_t numPages)
@@ -199,14 +210,17 @@ uint64_t pmm_FindFreeRegion(size_t numPages)
 
 void* pmm_AllocatePage()
 {
+    // spinlockAcquire(&PMM_LOCK);
     uint64_t region = pmm_FindFreeRegion(1);
+    
+    pmm_LockPage((void*)(region * PAGE_SIZE));
+    // spinlockRelease(&PMM_LOCK);
+
     if (region == INVALID_PAGE)
     {
         panic("[PMM] Physical memory ran out!\n");
         return NULL;
     }
-
-    pmm_LockPage((void*)(region * PAGE_SIZE));
 
     return (void*)(region * PAGE_SIZE);
 }
@@ -218,15 +232,18 @@ void* pmm_AllocatePages(size_t numPages)
         return NULL;
     }
 
+    // spinlockAcquire(&PMM_LOCK);
     uint64_t region = pmm_FindFreeRegion(numPages);
+
+    pmm_LockPages((void*)(region * PAGE_SIZE), numPages);
+    // spinlockRelease(&PMM_LOCK);
+
     if (region == INVALID_PAGE)
     {
         panic("[PMM] Physical memory ran out!\n");
         return NULL;
     }
 
-    pmm_LockPages((void*)(region * PAGE_SIZE), numPages);
-    
     return (void*)(region * PAGE_SIZE);
 }
 

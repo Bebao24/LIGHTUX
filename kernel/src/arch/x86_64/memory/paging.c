@@ -6,6 +6,7 @@
 #include <boot.h>
 #include <memory.h>
 #include <task.h>
+#include <spinlock.h>
 
 uint64_t* g_PageDir = NULL;
 
@@ -82,6 +83,8 @@ void ChangePageDirFake(uint64_t* pd)
     g_PageDir = pd;
 }
 
+spinlock_t PAGING_LOCK;
+
 void ChangePageDir(uint64_t* pd)
 {
     // Check for task
@@ -117,6 +120,8 @@ void paging_MapPage(void* virtAddr, void* physicalAddr, uint64_t flags)
     uint64_t pd_index = PDE(virtAddress);
     uint64_t pt_index = PTE(virtAddress);
 
+    spinlockAcquire(&PAGING_LOCK);
+
     if (!(g_PageDir[pml4_index] & PF_PRESENT))
     {
         size_t targetAddr = paging_PhysicalAllocate();
@@ -143,6 +148,8 @@ void paging_MapPage(void* virtAddr, void* physicalAddr, uint64_t flags)
 
     pt[pt_index] = (P_PHYS_ADDR(physicalAddress)) | PF_PRESENT | flags;
     invalidate(virtAddress);
+
+    spinlockRelease(&PAGING_LOCK);
 }
 
 void* paging_VirtToPhysical(void* virtAddr)
