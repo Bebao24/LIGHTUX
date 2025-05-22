@@ -44,15 +44,13 @@ task_t* TaskCreate(uint64_t entry, uint64_t* pageDir, void* arg)
     task->status = TASK_STATUS_CREATED; // Not ready yet
     task->pageDir = pageDir;
 
-    // Allocate memory for storing the cpu_status info
-    task->cpu_status = malloc(sizeof(cpu_registers_t));
-    task->cpu_status->ss = GDT_KERNEL_DATA;
-    task->cpu_status->cs = GDT_KERNEL_CODE;
-    task->cpu_status->rsp = (uint64_t)StackAllocate();
-    task->cpu_status->rflags = 0x202; // Enable interrupts and a legacy feature
-    task->cpu_status->rip = entry;
-    task->cpu_status->rdi = (uint64_t)arg;
-    task->cpu_status->rbp = 0;
+    task->cpu_status.ss = GDT_KERNEL_DATA;
+    task->cpu_status.cs = GDT_KERNEL_CODE;
+    task->cpu_status.rsp = (uint64_t)StackAllocate();
+    task->cpu_status.rflags = 0x202; // Enable interrupts and a legacy feature
+    task->cpu_status.rip = entry;
+    task->cpu_status.rdi = (uint64_t)arg;
+    task->cpu_status.rbp = 0;
 
     return task;
 }
@@ -89,7 +87,7 @@ void idle()
 {
     while (true)
     {
-        asm volatile ("hlt");
+        asm volatile ("pause");
     }
 }
 
@@ -103,6 +101,7 @@ void InitializeTask()
     currentTask->id = TASK_KERNEL_ID;
     currentTask->status = TASK_STATUS_READY;
     currentTask->pageDir = GetPageDir();
+    currentTask->cpu_status.rflags = 0x202;
     taskName(currentTask, TASK_KERNEL_NAME, sizeof(TASK_KERNEL_NAME));
 
     debugf("[TASK] Ready for multitasking!\n");
@@ -110,7 +109,7 @@ void InitializeTask()
 
     // Create a dummy task
     dummyTask = TaskCreate((uint64_t)idle, paging_AllocatePD(), 0);
-    dummyTask->status = TASK_STATUS_READY;
+    dummyTask->status = TASK_STATUS_DUMMY;
 
     taskName(dummyTask, TASK_DUMMY_NAME, sizeof(TASK_DUMMY_NAME));
 }

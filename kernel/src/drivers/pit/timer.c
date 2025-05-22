@@ -1,6 +1,7 @@
 #include "timer.h"
 #include <io.h>
 #include <irq.h>
+#include <scheduler.h>
 
 uint64_t ticks;
 uint32_t frequency = 1193;
@@ -9,6 +10,8 @@ void timerTick(cpu_registers_t* cpu_status)
 {
     (void)cpu_status;
     ticks++;
+
+    schedule(cpu_status);
 }
 
 void InitializeTimer()

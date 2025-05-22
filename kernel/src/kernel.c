@@ -23,6 +23,22 @@
 
 static volatile LIMINE_BASE_REVISION(3);
 
+void test1()
+{
+	while (true)
+	{
+		debugf("g");
+	}
+}
+
+void test2()
+{
+	while (true)
+	{
+		debugf("f");
+	}
+}
+
 void kmain()
 {
 	if (LIMINE_BASE_REVISION_SUPPORTED == false)
@@ -52,6 +68,14 @@ void kmain()
 	InitializeTimer();
 
 	InitializeTask();
+
+	// Test
+	task_t* task1 = TaskCreate((uint64_t)test1, paging_AllocatePD(), 0);
+	taskName(task1, "task1", sizeof("task1"));
+	task1->status = TASK_STATUS_READY;
+	task_t* task2 = TaskCreate((uint64_t)test2, paging_AllocatePD(), 0);
+	taskName(task2, "task2", sizeof("task2"));
+	task2->status = TASK_STATUS_READY;
 
 	while (true)
 	{

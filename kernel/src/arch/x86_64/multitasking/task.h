@@ -14,14 +14,15 @@ typedef enum
     TASK_STATUS_READY = 0,
     TASK_STATUS_CREATED = 1,
     TASK_STATUS_RUNNING = 2,
-    TASK_STATUS_DEAD = 3
+    TASK_STATUS_DEAD = 3,
+    TASK_STATUS_DUMMY = 100
 } TASK_STATUS;
 
 typedef struct Task
 {
     size_t id;
     uint8_t status;
-    cpu_registers_t* cpu_status;
+    cpu_registers_t cpu_status;
     uint64_t* pageDir;
 
     char* taskName;

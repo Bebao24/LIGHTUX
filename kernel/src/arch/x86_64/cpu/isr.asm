@@ -57,6 +57,19 @@ isr%1:
 
 %include "arch/x86_64/cpu/isr.inc"
 
+;; void asm_finalizeScheduler(uint64_t newStack, uint64_t newPageDir);
+global asm_finalizeScheduler
+asm_finalizeScheduler:
+    ; rdi: new stack
+    ; rsi: new page dir
+
+    mov rsp, rdi
+    mov cr3, rsi
+
+    restore_context
+    add rsp, 16
+    iretq
+
 isr_common:
     save_context
     mov rdi, rsp ;; Pass the stack to the C handler

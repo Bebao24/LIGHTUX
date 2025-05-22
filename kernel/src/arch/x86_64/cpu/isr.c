@@ -59,6 +59,13 @@ void interrupt_handler(cpu_registers_t* cpu_status)
     {
         // If the interrupt number < 32 then it is an exception triggered by the CPU
         // TODO: Print out all the registers' value
+        if (cpu_status->interrupt_number == 14)
+        {
+            // Page fault
+            uint64_t pageFault_addr;
+            asm volatile("movq %%cr2, %0" : "=r"(pageFault_addr));
+            debugf("[ISR] Page fault occured at address %llx\n", pageFault_addr);
+        }
         panic("[ISR] Exception: %s\n", g_Exceptions[cpu_status->interrupt_number]);
     }
 }

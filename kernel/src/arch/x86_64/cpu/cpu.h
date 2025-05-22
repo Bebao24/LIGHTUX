@@ -28,4 +28,4 @@ typedef struct
 	uint64_t rflags;
 	uint64_t rsp;
 	uint64_t ss;
-} __attribute__((packed)) cpu_registers_t;
+} cpu_registers_t;
