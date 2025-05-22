@@ -35,6 +35,7 @@ extern task_t* firstTask;
 extern task_t* currentTask;
 extern task_t* dummyTask;
 extern bool taskInitialized;
+extern bool schedulerReady;
 
 void InitializeTask();
 

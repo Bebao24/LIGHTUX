@@ -9,7 +9,7 @@ extern void asm_finalizeScheduler(uint64_t newStack, uint64_t newPageDir);
 
 void schedule(cpu_registers_t* cpu_status)
 {
-    if (!taskInitialized)
+    if (!taskInitialized || !schedulerReady)
     {
         return;
     }
@@ -44,6 +44,8 @@ void schedule(cpu_registers_t* cpu_status)
     {
         nextTask = dummyTask;
     }
+
+    // debugf("Next task: %s\n", nextTask->taskName);
 
     task_t* oldTask = currentTask;
     currentTask = nextTask;

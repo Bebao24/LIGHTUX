@@ -11,6 +11,7 @@ task_t* firstTask;
 task_t* currentTask;
 task_t* dummyTask;
 bool taskInitialized;
+bool schedulerReady;
 
 size_t currentID = 0;
 size_t GetFreeID()
@@ -104,7 +105,7 @@ void InitializeTask()
     currentTask->cpu_status.rflags = 0x202;
     taskName(currentTask, TASK_KERNEL_NAME, sizeof(TASK_KERNEL_NAME));
 
-    debugf("[TASK] Ready for multitasking!\n");
+    debugf("[TASK] Ready for basic multitasking!\n");
     taskInitialized = true;
 
     // Create a dummy task
@@ -112,5 +113,8 @@ void InitializeTask()
     dummyTask->status = TASK_STATUS_DUMMY;
 
     taskName(dummyTask, TASK_DUMMY_NAME, sizeof(TASK_DUMMY_NAME));
+
+    schedulerReady = true;
+    debugf("[TASK] Ready for scheduler!\n");
 }
 

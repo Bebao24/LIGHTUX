@@ -25,17 +25,25 @@ static volatile LIMINE_BASE_REVISION(3);
 
 void test1()
 {
-	while (true)
+	for (int i = 0; i < 10; i++)
 	{
 		debugf("g");
+	}
+
+	while (true)
+	{
 	}
 }
 
 void test2()
 {
-	while (true)
+	for (int i = 0; i < 10; i++)
 	{
 		debugf("f");
+	}
+
+	while (true)
+	{
 	}
 }
 
