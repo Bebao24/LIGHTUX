@@ -6,6 +6,7 @@
 #include <gdt.h>
 #include <stack.h>
 #include <spinlock.h>
+#include <system.h>
 
 // First task is just the kernel
 task_t* firstTask;
@@ -22,7 +23,7 @@ size_t GetFreeID()
 
 spinlock_t TASK_LOCK;
 
-task_t* TaskCreate(uint64_t entry, uint64_t* pageDir, void* arg)
+task_t* TaskAllocate()
 {
     task_t* task = (task_t*)malloc(sizeof(task_t));
     memset(task, 0, sizeof(task_t));
@@ -43,6 +44,34 @@ task_t* TaskCreate(uint64_t entry, uint64_t* pageDir, void* arg)
 
     browse->next = task;
     asm volatile ("sti");
+
+    return task;
+}
+
+void TaskFree(task_t* target)
+{
+    asm volatile ("cli");
+
+    task_t* browse = firstTask;
+    while (browse)
+    {
+        if (browse->next == target)
+        {
+            break;
+        }
+
+        browse = browse->next;
+    }
+
+    browse->next = target->next;
+
+    asm volatile ("sti");
+    free(target);
+}
+
+task_t* TaskCreate(uint64_t entry, uint64_t* pageDir, void* arg)
+{
+    task_t* task = TaskAllocate();
 
     task->id = GetFreeID();
     task->status = TASK_STATUS_CREATED; // Not ready yet
