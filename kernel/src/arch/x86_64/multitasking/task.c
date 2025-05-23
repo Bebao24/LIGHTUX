@@ -24,8 +24,6 @@ spinlock_t TASK_LOCK;
 
 task_t* TaskCreate(uint64_t entry, uint64_t* pageDir, void* arg)
 {
-    spinlockAcquire(&TASK_LOCK);
-
     task_t* task = (task_t*)malloc(sizeof(task_t));
     memset(task, 0, sizeof(task_t));
 
@@ -45,7 +43,6 @@ task_t* TaskCreate(uint64_t entry, uint64_t* pageDir, void* arg)
 
     browse->next = task;
     asm volatile ("sti");
-    spinlockRelease(&TASK_LOCK);
 
     task->id = GetFreeID();
     task->status = TASK_STATUS_CREATED; // Not ready yet
