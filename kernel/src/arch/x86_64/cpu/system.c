@@ -47,4 +47,11 @@ void halt()
 	}
 }
 
+bool checkInterrupts()
+{
+	uint16_t flags;
+	asm volatile("pushf; pop %0" : "=g"(flags));
+	return flags & (1 << 9);
+}
+
 

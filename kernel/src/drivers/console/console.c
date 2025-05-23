@@ -3,6 +3,7 @@
 #include <fb.h>
 #include <printf.h>
 #include <stdbool.h>
+#include <spinlock.h>
 
 // The reason that we used "int" instead of "uint32_t" is that we can check the number if it is < 0
 int g_ScreenX, g_ScreenY;
@@ -159,13 +160,18 @@ void puts(const char* string)
 	}
 }
 
+spinlock_t CONSOLE_LOCK;
 void printf(const char* fmt, ...)
 {
+	spinlockAcquire(&CONSOLE_LOCK);
+
 	va_list args;
 	va_start(args, fmt);
 
 	printf_internal(putc, fmt, args);
 
 	va_end(args);
+
+	spinlockRelease(&CONSOLE_LOCK);
 }
 
