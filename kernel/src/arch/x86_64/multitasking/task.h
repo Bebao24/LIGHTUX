@@ -45,3 +45,5 @@ void TaskKill(size_t id);
 task_t* TaskGet(size_t id);
 void taskName(task_t* task, char* name, size_t len);
 
+void TaskList();
+

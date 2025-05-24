@@ -123,6 +123,17 @@ task_t* TaskGet(size_t id)
     return browse;
 }
 
+void TaskList()
+{
+    // Useful for debugging...
+    task_t* browse = firstTask;
+    while (browse)
+    {
+        debugf("Task name: %s\n", browse->taskName);
+        browse = browse->next;
+    }
+}
+
 void taskName(task_t* task, char* name, size_t len)
 {
     task->taskName = malloc(len);

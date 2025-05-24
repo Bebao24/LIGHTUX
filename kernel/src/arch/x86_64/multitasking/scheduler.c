@@ -35,6 +35,11 @@ void schedule(cpu_registers_t* cpu_status)
     int fullRun = 0;
     while (nextTask->status != TASK_STATUS_READY)
     {
+        if (nextTask->status == TASK_STATUS_DEAD)
+        {
+            schedulerDeleteTask(nextTask->id);
+        }
+
         nextTask = nextTask->next;
 
         if (!nextTask)
@@ -62,12 +67,6 @@ void schedule(cpu_registers_t* cpu_status)
 
     // Save the cpu registers
     memcpy(&oldTask->cpu_status, cpu_status, sizeof(cpu_registers_t));
-
-    if (oldTask->status == TASK_STATUS_DEAD)
-    {
-        // Clean up
-        schedulerDeleteTask(oldTask->id);
-    }
 
     cpu_registers_t* iretqRsp = (cpu_registers_t*)(nextTask->cpu_status.rsp - sizeof(cpu_registers_t));
     memcpy(iretqRsp, &nextTask->cpu_status, sizeof(cpu_registers_t));
