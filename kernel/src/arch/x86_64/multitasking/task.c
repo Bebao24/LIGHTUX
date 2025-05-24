@@ -96,9 +96,11 @@ void TaskKill(size_t id)
         return;
     }
 
+    // TODO: Maybe make a reaper task!
+
     // Will be handled by the scheduler
     task->status = TASK_STATUS_DEAD;
-    while (true);
+    // while (true);
 }
 
 task_t* TaskGet(size_t id)
