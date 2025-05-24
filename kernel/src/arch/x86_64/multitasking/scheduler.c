@@ -22,6 +22,11 @@ void schedule(cpu_registers_t* cpu_status)
         nextTask = firstTask;
     }
 
+    if (currentTask->status != TASK_STATUS_DEAD && currentTask->status != TASK_STATUS_READY)
+    {
+        currentTask->status = TASK_STATUS_READY;
+    }
+
     int fullRun = 0;
     while (nextTask->status != TASK_STATUS_READY)
     {
@@ -45,8 +50,8 @@ void schedule(cpu_registers_t* cpu_status)
         nextTask = dummyTask;
     }
 
-    // debugf("Next task: %s\n", nextTask->taskName);
-
+    nextTask->status = TASK_STATUS_RUNNING;
+    
     task_t* oldTask = currentTask;
     currentTask = nextTask;
 
