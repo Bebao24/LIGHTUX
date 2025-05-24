@@ -5,6 +5,7 @@
 #include <kb_translate.h>
 #include <heap.h>
 #include <memory.h>
+#include <logging.h>
 
 key_info_t* g_KeyInfo;
 

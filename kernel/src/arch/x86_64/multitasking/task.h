@@ -40,6 +40,8 @@ extern bool schedulerReady;
 void InitializeTask();
 
 task_t* TaskCreate(uint64_t entry, uint64_t* pageDir, void* arg);
+void TaskFree(task_t* target);
+void TaskKill(size_t id);
 task_t* TaskGet(size_t id);
 void taskName(task_t* task, char* name, size_t len);
 

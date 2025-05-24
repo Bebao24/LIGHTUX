@@ -79,6 +79,9 @@ void kmain()
 	taskName(task2, "task2", sizeof("task2"));
 	task2->status = TASK_STATUS_READY;
 
+	// Try to kill task2
+	TaskKill(task2->id);
+
 	while (true)
 	{
 		char key = GetKey();

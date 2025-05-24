@@ -4,8 +4,13 @@
 #include <paging.h>
 #include <logging.h>
 #include <pic.h>
+#include <stack.h>
+#include <pmm.h>
+#include <vmm.h>
 
 extern void asm_finalizeScheduler(uint64_t newStack, uint64_t newPageDir);
+
+void schedulerDeleteTask(size_t taskId);
 
 void schedule(cpu_registers_t* cpu_status)
 {
@@ -58,6 +63,12 @@ void schedule(cpu_registers_t* cpu_status)
     // Save the cpu registers
     memcpy(&oldTask->cpu_status, cpu_status, sizeof(cpu_registers_t));
 
+    if (oldTask->status == TASK_STATUS_DEAD)
+    {
+        // Clean up
+        schedulerDeleteTask(oldTask->id);
+    }
+
     cpu_registers_t* iretqRsp = (cpu_registers_t*)(nextTask->cpu_status.rsp - sizeof(cpu_registers_t));
     memcpy(iretqRsp, &nextTask->cpu_status, sizeof(cpu_registers_t));
 
@@ -65,5 +76,26 @@ void schedule(cpu_registers_t* cpu_status)
 
     PIC_SendEOI(0);
     asm_finalizeScheduler((uint64_t)iretqRsp, (uint64_t)paging_VirtToPhysical((void*)nextTask->pageDir));
+}
+
+void schedulerDeleteTask(size_t taskId)
+{
+    task_t* task = TaskGet(taskId);
+    if (!task)
+    {
+        return;
+    }
+
+    // Free the stack
+    size_t stackSize = DEFAULT_STACK_SIZE_IN_PAGES * PAGE_SIZE;
+    void* stack = (void*)(task->cpu_status.rsp - stackSize);
+    vmm_FreePages(stack, DEFAULT_STACK_SIZE_IN_PAGES);
+
+    // Free the pd
+    void* pageDir = task->pageDir;
+    vmm_FreePage(pageDir);
+
+    // Finally, free the task itself
+    TaskFree(task);
 }
 

@@ -88,6 +88,19 @@ task_t* TaskCreate(uint64_t entry, uint64_t* pageDir, void* arg)
     return task;
 }
 
+void TaskKill(size_t id)
+{
+    task_t* task = TaskGet(id);
+    if (!task)
+    {
+        return;
+    }
+
+    // Will be handled by the scheduler
+    task->status = TASK_STATUS_DEAD;
+    while (true);
+}
+
 task_t* TaskGet(size_t id)
 {
     spinlockAcquire(&TASK_LOCK);
