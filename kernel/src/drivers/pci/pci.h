@@ -34,6 +34,17 @@ typedef struct
     uint8_t bist;
 } PCIDevice;
 
+typedef struct PCI
+{
+    struct PCI* next;
+
+    uint16_t bus;
+    uint8_t slot, func;
+    uint16_t vendorID, deviceID;
+} PCI;
+
+extern PCI* firstPCI;
+
 // PCI config offset
 #define PCI_VENDOR_ID 0x00
 #define PCI_DEVICE_ID 0x02
@@ -51,5 +62,5 @@ typedef struct
 void InitializePCI();
 bool PCI_FilterDevice(uint16_t bus, uint8_t slot, uint8_t func);
 void PCI_GetDevice(PCIDevice* device, uint16_t bus, uint8_t slot, uint8_t func);
-
+PCI* PCI_LookUpDevice(PCIDevice* device);
 

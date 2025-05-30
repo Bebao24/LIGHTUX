@@ -3,6 +3,27 @@
 #include <console.h>
 #include <maths.h>
 #include <heap.h>
+#include <linked_list.h>
+
+PCI* firstPCI;
+
+PCI* PCI_LookUpDevice(PCIDevice* device)
+{
+    PCI* browse = firstPCI;
+
+    while (browse)
+    {
+        if (browse->bus == device->bus && browse->slot == device->slot && 
+            browse->func == device->func)
+        {
+            break;
+        }
+
+        browse = browse->next;
+    }
+
+    return browse;
+}
 
 uint16_t PCI_ConfigReadWord(uint16_t bus, uint8_t slot, uint8_t func, uint8_t offset)
 {
@@ -67,7 +88,6 @@ void PCI_GetDevice(PCIDevice* device, uint16_t bus, uint8_t slot, uint8_t func)
 void InitializePCI()
 {
     PCIDevice* device = (PCIDevice*)malloc(sizeof(PCIDevice));
-    printf("PCI detection: \n");
 
     for (uint16_t bus = 0; bus < PCI_MAX_BUSES; bus++)
     {
@@ -82,7 +102,13 @@ void InitializePCI()
 
                 PCI_GetDevice(device, bus, slot, func);
 
-                printf("Vendor ID: %x, Device ID: %x\n", device->vendorID, device->deviceID);
+                PCI* target = LinkedListAllocate((void**)(&firstPCI), sizeof(PCI));
+                target->bus = bus;
+                target->slot = slot;
+                target->func = func;
+
+                target->vendorID = device->vendorID;
+                target->deviceID = device->deviceID;
             }
         }
     }

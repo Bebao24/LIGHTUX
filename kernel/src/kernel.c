@@ -73,6 +73,15 @@ void kmain()
 	InitializeTask();
 
 	InitializePCI();
+	printf("PCI detection: \n");
+
+	// Print all PCI devices' info
+	PCI* browse = firstPCI;
+	while (browse)
+	{
+		printf("Vendor ID: %x, Device ID: %x\n", browse->vendorID, browse->deviceID);
+		browse = browse->next;
+	}
 
 	while (true)
 	{
