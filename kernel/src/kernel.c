@@ -20,6 +20,7 @@
 #include <keyboard.h>
 #include <timer.h>
 #include <task.h>
+#include <pci.h>
 
 static volatile LIMINE_BASE_REVISION(3);
 
@@ -71,16 +72,7 @@ void kmain()
 
 	InitializeTask();
 
-	// Test
-	task_t* task1 = TaskCreate((uint64_t)test1, paging_AllocatePD(), 0);
-	taskName(task1, "task1", sizeof("task1"));
-	task1->status = TASK_STATUS_READY;
-	task_t* task2 = TaskCreate((uint64_t)test2, paging_AllocatePD(), 0);
-	taskName(task2, "task2", sizeof("task2"));
-	task2->status = TASK_STATUS_READY;
-
-	// Try to kill task2
-	TaskKill(task2->id);
+	InitializePCI();
 
 	while (true)
 	{

@@ -14,6 +14,18 @@ uint8_t x64_inb(uint16_t port)
     return result;
 }
 
+void x64_outl(uint16_t port, uint32_t value)
+{
+    asm volatile ("outl %1, %0" : : "d"(port), "a"(value));
+}
+
+uint32_t x64_inl(uint16_t port)
+{
+    uint32_t result;
+    asm volatile ("inl %1, %0" : "=a"(result) : "d"(port));
+    return result;
+}
+
 void x64_iowait()
 {
     x64_outb(UNUSED_PORT, 0);
