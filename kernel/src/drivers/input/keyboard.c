@@ -5,7 +5,6 @@
 #include <kb_translate.h>
 #include <heap.h>
 #include <memory.h>
-#include <logging.h>
 
 key_info_t* g_KeyInfo;
 
@@ -47,6 +46,9 @@ void IRQKeyboardHandler(cpu_registers_t* cpu_status)
             return;
         case BackSpace:
             g_KeyInfo->key = '\b';
+            return;
+        case Tab:
+            g_KeyInfo->key = '\t';
             return;
     }
 
