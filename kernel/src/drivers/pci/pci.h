@@ -11,6 +11,9 @@
 
 uint16_t PCI_ConfigReadWord(uint16_t bus, uint8_t slot, uint8_t func, uint8_t offset);
 
+// Device type
+#define PCI_GENERAL_DEVICE 0x00
+
 typedef struct
 {
     uint16_t bus;
@@ -33,6 +36,25 @@ typedef struct
     uint8_t headerType;
     uint8_t bist;
 } PCIDevice;
+
+typedef struct
+{
+    uint32_t bar[6];
+
+    uint32_t cardBusCISPtr;
+
+    uint16_t systemID;
+    uint16_t systemVendorID;
+
+    uint32_t expansionROMAddr;
+
+    uint8_t capabilitiesPtr;
+
+    uint8_t interruptLine;
+    uint8_t interruptPIN;
+    uint8_t minGrant;
+    uint8_t maxLatency;
+} PCIGeneralDevice;
 
 typedef struct PCI
 {
@@ -59,8 +81,23 @@ extern PCI* firstPCI;
 #define PCI_HEADER_TYPE 0x0E
 #define PCI_BIST 0x0F
 
+#define PCI_BAR0 0x10
+#define PCI_BAR1 0x14
+#define PCI_BAR2 0x18
+#define PCI_BAR3 0x1C
+#define PCI_BAR4 0x20
+#define PCI_BAR5 0x24
+#define PCI_SYSTEM_VENDOR_ID 0x2C
+#define PCI_SYSTEM_ID 0x2E
+#define PCI_ROM_EXPANSION_ADDR 0x30
+#define PCI_CAPABILITIES_PTR 0x34
+#define PCI_INTERRUPT_LINE 0x3C
+#define PCI_MIN_GRANT 0x3E
+
 void InitializePCI();
 bool PCI_FilterDevice(uint16_t bus, uint8_t slot, uint8_t func);
 void PCI_GetDevice(PCIDevice* device, uint16_t bus, uint8_t slot, uint8_t func);
+void PCI_GetGeneralDevice(PCIDevice* device, PCIGeneralDevice* target);
+
 PCI* PCI_LookUpDevice(PCIDevice* device);
 

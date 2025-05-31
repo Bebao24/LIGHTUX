@@ -85,6 +85,36 @@ void PCI_GetDevice(PCIDevice* device, uint16_t bus, uint8_t slot, uint8_t func)
     device->bist = EXPORT_BYTE(headerType_bist, false);
 }
 
+void PCI_GetGeneralDevice(PCIDevice* device, PCIGeneralDevice* target)
+{
+    // For convenient
+    uint16_t bus = device->bus;
+    uint8_t slot = device->slot;
+    uint8_t func = device->func;
+
+    for (int i = 0; i < 6; i++)
+    {
+        target->bar[i] = COMBINE_WORD(PCI_ConfigReadWord(bus, slot, func, PCI_BAR0 + 4 * i + 2),
+        PCI_ConfigReadWord(bus, slot, func, PCI_BAR0 + 4 * i));
+    }
+
+    target->systemVendorID = PCI_ConfigReadWord(bus, slot, func, PCI_SYSTEM_VENDOR_ID);
+    target->systemID = PCI_ConfigReadWord(bus, slot, func, PCI_SYSTEM_ID);
+
+    target->expansionROMAddr = COMBINE_WORD(PCI_ConfigReadWord(bus, slot, func, PCI_ROM_EXPANSION_ADDR + 2), 
+                                PCI_ConfigReadWord(bus, slot, func, PCI_ROM_EXPANSION_ADDR));
+
+    target->capabilitiesPtr = EXPORT_BYTE(PCI_ConfigReadWord(bus, slot, func, PCI_CAPABILITIES_PTR), true);
+
+    uint16_t interruptLine_interruptPin = PCI_ConfigReadWord(bus, slot, func, PCI_INTERRUPT_LINE);
+    target->interruptLine = EXPORT_BYTE(interruptLine_interruptPin, true);
+    target->interruptPIN = EXPORT_BYTE(interruptLine_interruptPin, false);
+
+    uint16_t minGrant_maxLatency = PCI_ConfigReadWord(bus, slot, func, PCI_MIN_GRANT);
+    target->minGrant = EXPORT_BYTE(minGrant_maxLatency, true);
+    target->maxLatency = EXPORT_BYTE(minGrant_maxLatency, false);
+}
+
 void InitializePCI()
 {
     PCIDevice* device = (PCIDevice*)malloc(sizeof(PCIDevice));
@@ -101,6 +131,13 @@ void InitializePCI()
                 }
 
                 PCI_GetDevice(device, bus, slot, func);
+
+                // Check if it is a general device
+                // We're only support general device (at least for now...)
+                if ((device->headerType & ~(1 << 7)) != PCI_GENERAL_DEVICE)
+                {
+                    continue;
+                }
 
                 PCI* target = LinkedListAllocate((void**)(&firstPCI), sizeof(PCI));
                 target->bus = bus;
