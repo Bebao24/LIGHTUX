@@ -46,6 +46,14 @@ uint16_t PCI_ConfigReadWord(uint16_t bus, uint8_t slot, uint8_t func, uint8_t of
     return tmp;
 }
 
+void PCI_ConfigWriteDWord(uint16_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t config)
+{
+    uint32_t address = (uint32_t)((bus << 16) | (slot << 11) | (func << 8) |
+                                (offset & 0xfc) | ((uint32_t)0x80000000));
+  x64_outl(PCI_CONFIG_ADDRESS, address);
+  x64_outl(PCI_CONFIG_DATA, config);
+}
+
 bool PCI_FilterDevice(uint16_t bus, uint8_t slot, uint8_t func)
 {
     // Check for invalid vendor ID
@@ -95,15 +103,15 @@ void PCI_GetGeneralDevice(PCIDevice* device, PCIGeneralDevice* target)
 
     for (int i = 0; i < 6; i++)
     {
-        target->bar[i] = COMBINE_WORD(PCI_ConfigReadWord(bus, slot, func, PCI_BAR0 + 4 * i + 2),
-        PCI_ConfigReadWord(bus, slot, func, PCI_BAR0 + 4 * i));
+        target->bar[i] = COMBINE_WORD(PCI_ConfigReadWord(bus, slot, func, PCI_BAR0 + 4 * i),
+        PCI_ConfigReadWord(bus, slot, func, PCI_BAR0 + 4 * i + 2));
     }
 
     target->systemVendorID = PCI_ConfigReadWord(bus, slot, func, PCI_SYSTEM_VENDOR_ID);
     target->systemID = PCI_ConfigReadWord(bus, slot, func, PCI_SYSTEM_ID);
 
-    target->expansionROMAddr = COMBINE_WORD(PCI_ConfigReadWord(bus, slot, func, PCI_ROM_EXPANSION_ADDR + 2), 
-                                PCI_ConfigReadWord(bus, slot, func, PCI_ROM_EXPANSION_ADDR));
+    target->expansionROMAddr = COMBINE_WORD(PCI_ConfigReadWord(bus, slot, func, PCI_ROM_EXPANSION_ADDR), 
+                                PCI_ConfigReadWord(bus, slot, func, PCI_ROM_EXPANSION_ADDR + 2));
 
     target->capabilitiesPtr = EXPORT_BYTE(PCI_ConfigReadWord(bus, slot, func, PCI_CAPABILITIES_PTR), true);
 

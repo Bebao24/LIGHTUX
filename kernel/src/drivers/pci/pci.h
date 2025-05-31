@@ -10,6 +10,7 @@
 #define PCI_CONFIG_DATA 0xCFC
 
 uint16_t PCI_ConfigReadWord(uint16_t bus, uint8_t slot, uint8_t func, uint8_t offset);
+void PCI_ConfigWriteDWord(uint16_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t config);
 
 // Device type
 #define PCI_GENERAL_DEVICE 0x00
