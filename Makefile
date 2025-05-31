@@ -22,7 +22,7 @@ always:
 	@ mkdir -p bin
 
 run:
-	qemu-system-x86_64 -drive file=bin/disk.img,format=raw -debugcon stdio -m 256M
+	qemu-system-x86_64 -drive file=bin/disk.img,format=raw,id=disk,if=none -device ahci,id=ahci -device ide-hd,drive=disk,bus=ahci.0 -debugcon stdio -m 256M
 
 clean:
 	@ $(MAKE) -C kernel clean

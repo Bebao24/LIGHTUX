@@ -4,6 +4,7 @@
 #include <maths.h>
 #include <heap.h>
 #include <linked_list.h>
+#include <ahci.h>
 
 PCI* firstPCI;
 
@@ -146,6 +147,14 @@ void InitializePCI()
 
                 target->vendorID = device->vendorID;
                 target->deviceID = device->deviceID;
+
+                // Initialize the devices' drivers
+                if (device->classID == 0x01 &&        // Mass storage
+                    device->subClassID == 0x06 &&     // SATA controller
+                    device->progIF == 0x01)           // AHCI 1.0
+                {
+                    InitializeAHCI(device);
+                }
             }
         }
     }
