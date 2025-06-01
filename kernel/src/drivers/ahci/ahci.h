@@ -10,6 +10,14 @@
 
 #define AHCI_BIOS_OWNED (1 << 0)
 
+#define HBA_PORT_DEV_PRESENT 0x3
+#define HBA_PORT_IPM_ACTIVE 0x1
+
+#define SATA_SIG_ATAPI 0xEB140101
+#define SATA_SIG_ATA 0x00000101
+#define SATA_SIG_SEMB 0xC33C0101
+#define SATA_SIG_PM 0x96690101
+
 typedef enum
 {
 	FIS_TYPE_REG_H2D	= 0x27,	// Register FIS - host to device
@@ -167,4 +175,5 @@ typedef struct
 } ahci;
 
 void InitializeAHCI(PCIDevice* device);
+void AHCI_PortProbe(HBA_MEM* mem);
 

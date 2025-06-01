@@ -32,17 +32,17 @@ void InitializeAHCI(PCIDevice* device)
 
     PCI_ConfigWriteDWord(device->bus, device->slot, device->func, PCI_COMMAND, command_status);
 
-    paging_MapPage((void*)BAR5Base, (void*)BAR5Base, PF_RW);
-    HBA_MEM* mem = (HBA_MEM*)(BAR5Base);
+    paging_MapPage((void*)(uint64_t)BAR5Base, (void*)(uint64_t)BAR5Base, PF_RW);
+    HBA_MEM* mem = (HBA_MEM*)((uint64_t)BAR5Base);
     ahci* ahciPtr = (ahci*)malloc(sizeof(ahci));
     memset(ahciPtr, 0, sizeof(ahci));
 
     ahciPtr->mem = mem;
     free(generalDevice);
 
-    // Do a full HBA reset
-    mem->ghc |= (1 << 0);
-    while (mem->ghc & (1 << 0));
+    // Do a full HBA reset (Don't because it will reset (literally) everything)
+    // mem->ghc |= (1 << 0);
+    // while (mem->ghc & (1 << 0));
 
     // BIOS handoff if needed
     if (!(mem->bohc & 2) || mem->cap2 & AHCI_BIOS_OWNED)
@@ -64,6 +64,8 @@ void InitializeAHCI(PCIDevice* device)
     {
         mem->ghc |= (1 << 31);
     }
+
+    AHCI_PortProbe(mem);
 
     // Set AHCI mode (AE)
     if (!(mem->ghc & (1 << 1)))
