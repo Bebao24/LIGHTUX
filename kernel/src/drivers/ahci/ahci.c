@@ -65,7 +65,7 @@ void InitializeAHCI(PCIDevice* device)
         mem->ghc |= (1 << 31);
     }
 
-    AHCI_PortProbe(mem);
+    AHCI_PortProbe(ahciPtr, mem);
 
     // Set AHCI mode (AE)
     if (!(mem->ghc & (1 << 1)))

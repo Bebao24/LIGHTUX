@@ -18,6 +18,11 @@
 #define SATA_SIG_SEMB 0xC33C0101
 #define SATA_SIG_PM 0x96690101
 
+#define HBA_PxCMD_CR 0x8000
+#define HBA_PxCMD_FRE 0x0010
+#define HBA_PxCMD_ST 0x0001
+#define HBA_PxCMD_FR 0x4000
+
 typedef enum
 {
 	FIS_TYPE_REG_H2D	= 0x27,	// Register FIS - host to device
@@ -175,5 +180,8 @@ typedef struct
 } ahci;
 
 void InitializeAHCI(PCIDevice* device);
-void AHCI_PortProbe(HBA_MEM* mem);
+void AHCI_PortProbe(ahci* ahciPtr, HBA_MEM* mem);
+void AHCI_PortRebase(ahci* ahciPtr, HBA_PORT* port);
 
+void AHCI_StopCommand(HBA_PORT* port);
+void AHCI_StartCommand(HBA_PORT* port);
