@@ -2,6 +2,7 @@
 #include <logging.h>
 #include <memory.h>
 #include <vmm.h>
+#include <paging.h>
 
 uint8_t AHCI_CheckPortType(HBA_PORT* port)
 {
@@ -47,7 +48,7 @@ void AHCI_PortProbe(ahci* ahciPtr, HBA_MEM* mem)
             if (portType == AHCI_PORT_SATA)
             {
                 debugf("[AHCI] Drive: SATA drive detected!\n");
-                AHCI_PortRebase(ahciPtr, &mem->ports[i]);
+                AHCI_PortRebase(ahciPtr, &mem->ports[i], i);
             }
             else if (portType == AHCI_PORT_SATAPI)
             {
@@ -66,34 +67,51 @@ void AHCI_PortProbe(ahci* ahciPtr, HBA_MEM* mem)
     }
 }
 
-void AHCI_PortRebase(ahci* ahciPtr, HBA_PORT* port)
+void AHCI_PortRebase(ahci* ahciPtr, HBA_PORT* port, int portNum)
 {
     AHCI_StopCommand(port);
 
     // Quite a waste of memory....
-    void* clbBase = vmm_AllocatePage();
-    port->clb = (uint32_t)(uint64_t)clbBase;
-    port->clbu = (uint32_t)((uint64_t)clbBase >> 32);
-    memset(clbBase, 0, 1024);
+    void* clbVirt = vmm_AllocatePage();
+    void* clbPhysical = paging_VirtToPhysical(clbVirt);
+    memset(clbVirt, 0, 1024);
 
-    void* fisBase = vmm_AllocatePage();
-    port->fb = (uint32_t)(uint64_t)fisBase;
-    port->fbu = (uint32_t)((uint64_t)fisBase >> 32);
-    memset(fisBase, 0, 256);
+    port->clb = (uint32_t)(uint64_t)clbPhysical;
+    port->clbu = (uint32_t)((uint64_t)clbPhysical >> 32);
+    ahciPtr->clbVirt[portNum] = clbVirt;
 
-    HBA_CMD_HEADER* cmdHeader = (HBA_CMD_HEADER*)((uint64_t)port->clb + ((uint64_t)port->clbu << 32));
+    void* fisVirt = vmm_AllocatePage();
+    void* fisPhysical = paging_VirtToPhysical(fisVirt);
+    memset(fisVirt, 0, 256);
+
+    port->fb = (uint32_t)(uint64_t)fisPhysical;
+    port->fbu = (uint32_t)((uint64_t)fisPhysical >> 32);
+
+    HBA_CMD_HEADER* cmdHeader = (HBA_CMD_HEADER*)clbVirt;
 
     for (int i = 0; i < 32; i++)
     {
         cmdHeader->prdtl = 8;
 
-        void* cmdTableAddr = vmm_AllocatePage();
-        uint64_t addr = (uint64_t)cmdTableAddr + (i << 8);
+        void* cmdTableVirt = vmm_AllocatePage();
+        void* cmdTablePhysical = paging_VirtToPhysical(cmdTablePhysical);
+
+        uint64_t addr = (uint64_t)cmdTablePhysical + (i << 8);
 
         cmdHeader[i].ctba = (uint32_t)addr;
         cmdHeader[i].ctbau = (uint32_t)(addr >> 32);
-        memset(cmdTableAddr, 0, 256);
+        memset(cmdTableVirt, 0, 256);
+
+        ahciPtr->ctbaVirt[portNum][i] = cmdTableVirt;
     }
+
+    // Clear interface fatal error
+    if (port->serr & (1 << 10))
+    {
+        port->serr |= (1 << 10);
+    }
+
+    port->serr = port->serr; // Effectively clearing all bits (that were set)
 
     AHCI_StartCommand(port);
 }

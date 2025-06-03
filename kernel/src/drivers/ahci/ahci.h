@@ -177,11 +177,13 @@ typedef struct tagFIS_REG_H2D
 typedef struct
 {
     HBA_MEM* mem;
+	void* clbVirt[32]; // 32 ports
+	void* ctbaVirt[32][32]; // 32 port -> 32 * 32 cmd tables
 } ahci;
 
 void InitializeAHCI(PCIDevice* device);
 void AHCI_PortProbe(ahci* ahciPtr, HBA_MEM* mem);
-void AHCI_PortRebase(ahci* ahciPtr, HBA_PORT* port);
+void AHCI_PortRebase(ahci* ahciPtr, HBA_PORT* port, int portNum);
 
 void AHCI_StopCommand(HBA_PORT* port);
 void AHCI_StartCommand(HBA_PORT* port);
