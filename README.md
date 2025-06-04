@@ -5,7 +5,7 @@ This is a x86_64 hobby OS. Nothing much.
 
 ## Status:
 This is a completely new OS and shouldn't be used daily. It is currently using limine as a bootloader. <br>
-It has a x86_64 pre-emptive multitasking kernel.
+It has a x86_64 pre-emptive multitasking kernel. There is also AHCI disk reading and writing support.
 
 ## Documentation
 - **Installing**: Please go to ``docs/install.md`` for a guide on how to build and run this OS.
