@@ -5,6 +5,9 @@
 #include <boot.h>
 #include <memory.h>
 #include <paging.h>
+#include <spinlock.h>
+#include <timer.h>
+#include <console.h>
 
 void InitializeAHCI(PCIDevice* device)
 {
@@ -72,5 +75,142 @@ void InitializeAHCI(PCIDevice* device)
     {
         mem->ghc |= (1 << 1);
     }
+
+    // Test the read function here
+    int pos = 0;
+    while (!(ahciPtr->sata & (1 << pos)))
+    {
+        pos++;
+    }
+
+    uint8_t* buffer = (uint8_t*)malloc(512);
+    memset(buffer, 0, 512);
+
+    if (!AHCI_DiskRead(ahciPtr, pos, &ahciPtr->mem->ports[pos], 0, 1, buffer))
+    {
+        debugf("Failed to read disk!\n");
+    }
+
+    // Verify boot sector
+    if (buffer[510] == 0x55 && buffer[511] == 0xAA)
+    {
+        debugf("[AHCI] Reading test passed!\n");
+    }
+    else
+    {
+        debugf("[AHCI] Something is wrong with disk reading!\n");
+    }
+}
+
+spinlock_t AHCI_CMD_FIND_LOCK;
+int AHCI_FindCmdSlot(HBA_PORT* port)
+{
+    spinlockAcquire(&AHCI_CMD_FIND_LOCK);
+
+    // If not set in SACT and CI, the slot is free
+    uint32_t slots = (port->sact | port->ci);
+    for (int i = 0; i < 32; i++)
+    {
+        if ((slots & 1) == 0)
+        {
+            return i;
+        }
+
+        slots >>= 1;
+    }
+
+    spinlockRelease(&AHCI_CMD_FIND_LOCK);
+
+    debugf("[AHCI] Couldn't find free slot!\n");
+    return -1;
+}
+
+bool AHCI_DiskRead(ahci* ahciPtr, int portNum, HBA_PORT* port, uint64_t sector, uint32_t sectorCount, void* buffer)
+{
+    uint32_t sectorLow = (uint32_t)sector;
+    uint32_t sectorHigh = (uint32_t)(sector >> 32);
+
+    port->is = (uint32_t)-1; // Clear pending interrupt bits
+    int slot = AHCI_FindCmdSlot(port);
+    if (slot == -1)
+    {
+        return false;
+    }
+
+    // Find the cmd header
+    HBA_CMD_HEADER* cmdHeader = (HBA_CMD_HEADER*)ahciPtr->clbVirt[portNum];
+    cmdHeader = &cmdHeader[slot];
+    memset(cmdHeader, 0, sizeof(HBA_CMD_HEADER));
+
+    // Find the ctba
+    void* ctbaVirt = ahciPtr->ctbaVirt[portNum][slot];
+    void* ctbaPhysical = paging_VirtToPhysical(ctbaVirt);
+    cmdHeader->ctba = (uint32_t)(uint64_t)ctbaPhysical;
+    cmdHeader->ctbau = (uint32_t)((uint64_t)ctbaPhysical >> 32);
+    cmdHeader->cfl = sizeof(FIS_REG_H2D) / sizeof(uint32_t);
+    cmdHeader->w = (uint8_t)0;
+    cmdHeader->prdtl = 1; // TODO: Actually dynamically set based on the buffer size!
+
+    HBA_CMD_TBL* cmdTbl = (HBA_CMD_TBL*)((uint64_t)ahciPtr->ctbaVirt[portNum][slot]);
+    memset(cmdTbl, 0, sizeof(HBA_CMD_TBL) + cmdHeader->prdtl * sizeof(HBA_PRDT_ENTRY));
+
+    // Setup the buffer
+    void* bufferPhysical = paging_VirtToPhysical(buffer);
+    cmdTbl->prdt_entry[0].dba = (uint32_t)(uint64_t)bufferPhysical;
+    cmdTbl->prdt_entry[0].dbau = (uint32_t)((uint64_t)bufferPhysical >> 32);
+    cmdTbl->prdt_entry[0].dbc = (sectorCount << 9) - 1; // 512 bytes per sector
+    cmdTbl->prdt_entry[0].i = 1;
+
+    // Setup the FIS
+    FIS_REG_H2D* cmdFis = (FIS_REG_H2D*)(&cmdTbl->cfis);
+    memset(cmdFis, 0, sizeof(FIS_REG_H2D));
+    cmdFis->fis_type = FIS_TYPE_REG_H2D;
+    cmdFis->c = 1; // Command
+    cmdFis->command = ATA_CMD_READ_DMA_EX;
+
+    // Setup the sector
+    cmdFis->lba0 = (uint8_t)sectorLow;
+    cmdFis->lba1 = (uint8_t)(sectorLow >> 8);
+    cmdFis->lba2 = (uint8_t)(sectorLow >> 16);
+    
+    cmdFis->lba3 = (uint8_t)sectorHigh;
+    cmdFis->lba4 = (uint8_t)(sectorHigh >> 8);
+    cmdFis->lba5 = (uint8_t)(sectorHigh >> 16);
+
+    cmdFis->device = 1 << 6; // LBA mode
+
+    // Setup the sector count
+    cmdFis->countl = sectorCount & 0xFF;
+    cmdFis->counth = (sectorCount >> 8) & 0xFF;
+
+    // Wait for the port
+    uint64_t start = ticks;
+    while ((port->tfd & (ATA_DEV_BUSY | ATA_DEV_DRQ)))
+    {
+        if (ticks >= start + 1000)
+        {
+            debugf("[AHCI] Port is hung!\n");
+            return false;
+        }
+    }
+
+    // Issue command
+    port->ci = 1 << slot;
+
+    // Poll until complete
+    while (1)
+    {
+        if ((port->ci & (1 << slot)) == 0)
+        {
+            break;
+        }
+
+        if ((port->is & HBA_PxIS_TFES))
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 

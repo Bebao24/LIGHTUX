@@ -23,6 +23,16 @@
 #define HBA_PxCMD_ST 0x0001
 #define HBA_PxCMD_FR 0x4000
 
+#define ATA_CMD_READ_DMA 0xC8
+#define ATA_CMD_READ_DMA_EX 0x25
+#define ATA_CMD_WRITE_DMA 0xCA
+#define ATA_CMD_WRITE_DMA_EX 0x35
+
+#define ATA_DEV_BUSY 0x80
+#define ATA_DEV_DRQ 0x08
+
+#define HBA_PxIS_TFES (1 << 30)
+
 typedef enum
 {
 	FIS_TYPE_REG_H2D	= 0x27,	// Register FIS - host to device
@@ -179,6 +189,7 @@ typedef struct
     HBA_MEM* mem;
 	void* clbVirt[32]; // 32 ports
 	void* ctbaVirt[32][32]; // 32 port -> 32 * 32 cmd tables
+	uint32_t sata; // 32 ports -> 32 bits
 } ahci;
 
 void InitializeAHCI(PCIDevice* device);
@@ -187,3 +198,5 @@ void AHCI_PortRebase(ahci* ahciPtr, HBA_PORT* port, int portNum);
 
 void AHCI_StopCommand(HBA_PORT* port);
 void AHCI_StartCommand(HBA_PORT* port);
+
+bool AHCI_DiskRead(ahci* ahciPtr, int portNum, HBA_PORT* port, uint64_t sector, uint32_t sectorCount, void* buffer);

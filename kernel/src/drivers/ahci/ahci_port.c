@@ -114,5 +114,7 @@ void AHCI_PortRebase(ahci* ahciPtr, HBA_PORT* port, int portNum)
     port->serr = port->serr; // Effectively clearing all bits (that were set)
 
     AHCI_StartCommand(port);
+
+    ahciPtr->sata |= (1 << portNum);
 }
 
