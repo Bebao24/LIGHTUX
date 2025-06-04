@@ -83,6 +83,7 @@ void InitializeAHCI(PCIDevice* device)
         pos++;
     }
 
+    // Disk reading test
     uint8_t* buffer = (uint8_t*)malloc(512);
     memset(buffer, 0, 512);
 
@@ -100,6 +101,36 @@ void InitializeAHCI(PCIDevice* device)
     {
         debugf("[AHCI] Something is wrong with disk reading!\n");
     }
+    free(buffer);
+
+    // Disk writing test
+    uint8_t* testPattern = (uint8_t*)malloc(512);
+    memset(testPattern, 0, 512);
+
+    memcpy(testPattern, "AHCI_TEST", 9);
+    for (int i = 9; i < 512; i++)
+    {
+        testPattern[i] = i & 0xFF;
+    }
+
+    AHCI_DiskWrite(ahciPtr, pos, &ahciPtr->mem->ports[pos], 100, 1, testPattern);
+
+    uint8_t* verifyBuffer = (uint8_t*)malloc(512);
+    memset(verifyBuffer, 0, 512);
+
+    if (!AHCI_DiskRead(ahciPtr, pos, &ahciPtr->mem->ports[pos], 100, 1, verifyBuffer))
+    {
+        debugf("[AHCI] Failed to read!\n");
+    }
+
+    // Verify
+    if (memcmp(testPattern, verifyBuffer, 512) == 0)
+    {
+        debugf("[AHCI] Writing test passed!\n");
+    }
+
+
+    free(testPattern);
 }
 
 spinlock_t AHCI_CMD_FIND_LOCK;
@@ -113,6 +144,7 @@ int AHCI_FindCmdSlot(HBA_PORT* port)
     {
         if ((slots & 1) == 0)
         {
+            spinlockRelease(&AHCI_CMD_FIND_LOCK);
             return i;
         }
 
@@ -125,7 +157,7 @@ int AHCI_FindCmdSlot(HBA_PORT* port)
     return -1;
 }
 
-HBA_CMD_TBL* AHCI_SetupCMD(ahci* ahciPtr, int portNum, int slot, uint32_t sectorCount, void* buffer)
+HBA_CMD_TBL* AHCI_SetupCMD(ahci* ahciPtr, int portNum, int slot, uint32_t sectorCount, void* buffer, bool write)
 {
     // Find the cmd header
     HBA_CMD_HEADER* cmdHeader = (HBA_CMD_HEADER*)ahciPtr->clbVirt[portNum];
@@ -138,7 +170,7 @@ HBA_CMD_TBL* AHCI_SetupCMD(ahci* ahciPtr, int portNum, int slot, uint32_t sector
     cmdHeader->ctba = (uint32_t)(uint64_t)ctbaPhysical;
     cmdHeader->ctbau = (uint32_t)((uint64_t)ctbaPhysical >> 32);
     cmdHeader->cfl = sizeof(FIS_REG_H2D) / sizeof(uint32_t);
-    cmdHeader->w = (uint8_t)0;
+    cmdHeader->w = (uint8_t)write;
     cmdHeader->prdtl = 1; // TODO: Actually dynamically set based on the buffer size!
 
     HBA_CMD_TBL* cmdTbl = (HBA_CMD_TBL*)((uint64_t)ahciPtr->ctbaVirt[portNum][slot]);
@@ -204,7 +236,7 @@ bool AHCI_DiskRead(ahci* ahciPtr, int portNum, HBA_PORT* port, uint64_t sector, 
         return false;
     }
 
-    HBA_CMD_TBL* cmdTbl = AHCI_SetupCMD(ahciPtr, portNum, slot, sectorCount, buffer);
+    HBA_CMD_TBL* cmdTbl = AHCI_SetupCMD(ahciPtr, portNum, slot, sectorCount, buffer, false);
 
     // Setup the FIS
     FIS_REG_H2D* cmdFis = (FIS_REG_H2D*)(&cmdTbl->cfis);
@@ -218,12 +250,56 @@ bool AHCI_DiskRead(ahci* ahciPtr, int portNum, HBA_PORT* port, uint64_t sector, 
     cmdFis->lba1 = (uint8_t)(sectorLow >> 8);
     cmdFis->lba2 = (uint8_t)(sectorLow >> 16);
     
-    cmdFis->lba3 = (uint8_t)sectorHigh;
-    cmdFis->lba4 = (uint8_t)(sectorHigh >> 8);
-    cmdFis->lba5 = (uint8_t)(sectorHigh >> 16);
+    cmdFis->lba3 = (uint8_t)(sectorLow >> 24);
+    cmdFis->lba4 = (uint8_t)sectorHigh;
+    cmdFis->lba5 = (uint8_t)(sectorHigh >> 8);
 
     cmdFis->device = 1 << 6; // LBA mode
 
+    // Setup the sector count
+    cmdFis->countl = sectorCount & 0xFF;
+    cmdFis->counth = (sectorCount >> 8) & 0xFF;
+
+    if (!AHCI_PortReady(port))
+    {
+        return false;
+    }
+
+    return AHCI_CMDIssue(port, slot);
+}
+
+bool AHCI_DiskWrite(ahci* ahciPtr, int portNum, HBA_PORT* port, uint64_t sector, uint32_t sectorCount, void* buffer)
+{
+    uint32_t sectorLow = (uint32_t)sector;
+    uint32_t sectorHigh = (uint32_t)(sector >> 32);
+
+    port->is = (uint32_t)-1;
+    int slot = AHCI_FindCmdSlot(port);
+    if (slot == -1)
+    {
+        return false;
+    }
+
+    HBA_CMD_TBL* cmdTbl = AHCI_SetupCMD(ahciPtr, portNum, slot, sectorCount, buffer, true);
+
+    // Setup the FIS
+    FIS_REG_H2D* cmdFis = (FIS_REG_H2D*)(&cmdTbl->cfis);
+    memset(cmdFis, 0, sizeof(FIS_REG_H2D));
+    cmdFis->fis_type = FIS_TYPE_REG_H2D;
+    cmdFis->c = 1; // Command
+    cmdFis->command = ATA_CMD_WRITE_DMA_EX;
+
+    // Setup the sector
+    cmdFis->lba0 = (uint8_t)sectorLow;
+    cmdFis->lba1 = (uint8_t)(sectorLow >> 8);
+    cmdFis->lba2 = (uint8_t)(sectorLow >> 16);
+    
+    cmdFis->lba3 = (uint8_t)(sectorLow >> 24);
+    cmdFis->lba4 = (uint8_t)sectorHigh;
+    cmdFis->lba5 = (uint8_t)(sectorHigh >> 8);
+    
+    cmdFis->device = 1 << 6; // LBA mode
+    
     // Setup the sector count
     cmdFis->countl = sectorCount & 0xFF;
     cmdFis->counth = (sectorCount >> 8) & 0xFF;

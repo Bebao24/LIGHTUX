@@ -200,3 +200,4 @@ void AHCI_StopCommand(HBA_PORT* port);
 void AHCI_StartCommand(HBA_PORT* port);
 
 bool AHCI_DiskRead(ahci* ahciPtr, int portNum, HBA_PORT* port, uint64_t sector, uint32_t sectorCount, void* buffer);
+bool AHCI_DiskWrite(ahci* ahciPtr, int portNum, HBA_PORT* port, uint64_t sector, uint32_t sectorCount, void* buffer);
