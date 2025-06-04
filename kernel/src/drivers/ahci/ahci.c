@@ -125,18 +125,8 @@ int AHCI_FindCmdSlot(HBA_PORT* port)
     return -1;
 }
 
-bool AHCI_DiskRead(ahci* ahciPtr, int portNum, HBA_PORT* port, uint64_t sector, uint32_t sectorCount, void* buffer)
+HBA_CMD_TBL* AHCI_SetupCMD(ahci* ahciPtr, int portNum, int slot, uint32_t sectorCount, void* buffer)
 {
-    uint32_t sectorLow = (uint32_t)sector;
-    uint32_t sectorHigh = (uint32_t)(sector >> 32);
-
-    port->is = (uint32_t)-1; // Clear pending interrupt bits
-    int slot = AHCI_FindCmdSlot(port);
-    if (slot == -1)
-    {
-        return false;
-    }
-
     // Find the cmd header
     HBA_CMD_HEADER* cmdHeader = (HBA_CMD_HEADER*)ahciPtr->clbVirt[portNum];
     cmdHeader = &cmdHeader[slot];
@@ -161,6 +151,61 @@ bool AHCI_DiskRead(ahci* ahciPtr, int portNum, HBA_PORT* port, uint64_t sector, 
     cmdTbl->prdt_entry[0].dbc = (sectorCount << 9) - 1; // 512 bytes per sector
     cmdTbl->prdt_entry[0].i = 1;
 
+    return cmdTbl;
+}
+
+bool AHCI_PortReady(HBA_PORT* port)
+{
+    // Wait for the port
+    uint64_t start = ticks;
+    while ((port->tfd & (ATA_DEV_BUSY | ATA_DEV_DRQ)))
+    {
+        if (ticks >= start + 1000)
+        {
+            debugf("[AHCI] Port is hung!\n");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool AHCI_CMDIssue(HBA_PORT* port, int slot)
+{
+    // Issue command
+    port->ci = 1 << slot;
+
+    // Poll until complete
+    while (1)
+    {
+        if ((port->ci & (1 << slot)) == 0)
+        {
+            break;
+        }
+
+        if ((port->is & HBA_PxIS_TFES))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool AHCI_DiskRead(ahci* ahciPtr, int portNum, HBA_PORT* port, uint64_t sector, uint32_t sectorCount, void* buffer)
+{
+    uint32_t sectorLow = (uint32_t)sector;
+    uint32_t sectorHigh = (uint32_t)(sector >> 32);
+
+    port->is = (uint32_t)-1; // Clear pending interrupt bits
+    int slot = AHCI_FindCmdSlot(port);
+    if (slot == -1)
+    {
+        return false;
+    }
+
+    HBA_CMD_TBL* cmdTbl = AHCI_SetupCMD(ahciPtr, portNum, slot, sectorCount, buffer);
+
     // Setup the FIS
     FIS_REG_H2D* cmdFis = (FIS_REG_H2D*)(&cmdTbl->cfis);
     memset(cmdFis, 0, sizeof(FIS_REG_H2D));
@@ -183,34 +228,11 @@ bool AHCI_DiskRead(ahci* ahciPtr, int portNum, HBA_PORT* port, uint64_t sector, 
     cmdFis->countl = sectorCount & 0xFF;
     cmdFis->counth = (sectorCount >> 8) & 0xFF;
 
-    // Wait for the port
-    uint64_t start = ticks;
-    while ((port->tfd & (ATA_DEV_BUSY | ATA_DEV_DRQ)))
+    if (!AHCI_PortReady(port))
     {
-        if (ticks >= start + 1000)
-        {
-            debugf("[AHCI] Port is hung!\n");
-            return false;
-        }
+        return false;
     }
 
-    // Issue command
-    port->ci = 1 << slot;
-
-    // Poll until complete
-    while (1)
-    {
-        if ((port->ci & (1 << slot)) == 0)
-        {
-            break;
-        }
-
-        if ((port->is & HBA_PxIS_TFES))
-        {
-            return false;
-        }
-    }
-
-    return true;
+    return AHCI_CMDIssue(port, slot);
 }
 
