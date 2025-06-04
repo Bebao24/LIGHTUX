@@ -57,6 +57,13 @@ typedef struct
     uint8_t maxLatency;
 } PCIGeneralDevice;
 
+// Some way to identify a device
+typedef enum
+{
+    PCI_DRIVER_NULL = 0,
+    PCI_DRIVER_AHCI,
+} PCI_DRIVER;
+
 typedef struct PCI
 {
     struct PCI* next;
@@ -64,6 +71,10 @@ typedef struct PCI
     uint16_t bus;
     uint8_t slot, func;
     uint16_t vendorID, deviceID;
+
+    PCI_DRIVER driverType;
+
+    void* devicePtr;
 } PCI;
 
 extern PCI* firstPCI;

@@ -21,6 +21,8 @@
 #include <timer.h>
 #include <task.h>
 #include <pci.h>
+#include <disk.h>
+#include <memory.h>
 
 static volatile LIMINE_BASE_REVISION(3);
 
@@ -81,6 +83,23 @@ void kmain()
 	{
 		printf("Vendor ID: %x, Device ID: %x\n", browse->vendorID, browse->deviceID);
 		browse = browse->next;
+	}
+
+	// Verify if disk read is working
+	uint8_t buffer[512];
+	memset(buffer, 0, 512);
+
+	// Read the boot sector
+	diskRead(0, 1, buffer);
+
+	// Verify
+	if (buffer[510] == 0x55 && buffer[511] == 0xAA)
+	{
+		debugf("[DISK] Disk reading test passed!\n");
+	}
+	else
+	{
+		debugf("[DISK] Something is wrong with disk reading!\n");
 	}
 
 	while (true)

@@ -35,6 +35,9 @@ void InitializeAHCI(PCIDevice* device)
 
     PCI_ConfigWriteDWord(device->bus, device->slot, device->func, PCI_COMMAND, command_status);
 
+    PCI* pciDevice = PCI_LookUpDevice(device);
+    pciDevice->driverType = PCI_DRIVER_AHCI;
+
     paging_MapPage((void*)(uint64_t)BAR5Base, (void*)(uint64_t)BAR5Base, PF_RW);
     HBA_MEM* mem = (HBA_MEM*)((uint64_t)BAR5Base);
     ahci* ahciPtr = (ahci*)malloc(sizeof(ahci));
@@ -42,6 +45,8 @@ void InitializeAHCI(PCIDevice* device)
 
     ahciPtr->mem = mem;
     free(generalDevice);
+
+    pciDevice->devicePtr = ahciPtr;
 
     // Do a full HBA reset (Don't because it will reset (literally) everything)
     // mem->ghc |= (1 << 0);
@@ -82,55 +87,6 @@ void InitializeAHCI(PCIDevice* device)
     {
         pos++;
     }
-
-    // Disk reading test
-    uint8_t* buffer = (uint8_t*)malloc(512);
-    memset(buffer, 0, 512);
-
-    if (!AHCI_DiskRead(ahciPtr, pos, &ahciPtr->mem->ports[pos], 0, 1, buffer))
-    {
-        debugf("Failed to read disk!\n");
-    }
-
-    // Verify boot sector
-    if (buffer[510] == 0x55 && buffer[511] == 0xAA)
-    {
-        debugf("[AHCI] Reading test passed!\n");
-    }
-    else
-    {
-        debugf("[AHCI] Something is wrong with disk reading!\n");
-    }
-    free(buffer);
-
-    // Disk writing test
-    uint8_t* testPattern = (uint8_t*)malloc(512);
-    memset(testPattern, 0, 512);
-
-    memcpy(testPattern, "AHCI_TEST", 9);
-    for (int i = 9; i < 512; i++)
-    {
-        testPattern[i] = i & 0xFF;
-    }
-
-    AHCI_DiskWrite(ahciPtr, pos, &ahciPtr->mem->ports[pos], 100, 1, testPattern);
-
-    uint8_t* verifyBuffer = (uint8_t*)malloc(512);
-    memset(verifyBuffer, 0, 512);
-
-    if (!AHCI_DiskRead(ahciPtr, pos, &ahciPtr->mem->ports[pos], 100, 1, verifyBuffer))
-    {
-        debugf("[AHCI] Failed to read!\n");
-    }
-
-    // Verify
-    if (memcmp(testPattern, verifyBuffer, 512) == 0)
-    {
-        debugf("[AHCI] Writing test passed!\n");
-    }
-
-
-    free(testPattern);
 }
 
 spinlock_t AHCI_CMD_FIND_LOCK;
