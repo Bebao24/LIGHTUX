@@ -23,6 +23,7 @@
 #include <pci.h>
 #include <disk.h>
 #include <memory.h>
+#include <mbr.h>
 
 static volatile LIMINE_BASE_REVISION(3);
 
@@ -85,22 +86,16 @@ void kmain()
 		browse = browse->next;
 	}
 
-	// Verify if disk read is working
-	uint8_t buffer[512];
-	memset(buffer, 0, 512);
+	// Detect our MBR disk partition
+	Partition part;
+	uint8_t mbrBytes[512];
+	diskRead(0, 1, mbrBytes);
 
-	// Read the boot sector
-	diskRead(0, 1, buffer);
+	void* partPtr = &mbrBytes[446]; // First partition entry
+	MBR_DetectPartition(&part, partPtr);
 
-	// Verify
-	if (buffer[510] == 0x55 && buffer[511] == 0xAA)
-	{
-		debugf("[DISK] Disk reading test passed!\n");
-	}
-	else
-	{
-		debugf("[DISK] Something is wrong with disk reading!\n");
-	}
+	debugf("[DISK] partition offset: %d\n", part.partitionOffset);
+	debugf("[DISK] partition size: %d\n", part.partitionSize);
 
 	while (true)
 	{
