@@ -15,6 +15,11 @@ void InitializeFramebuffer()
 
 void fb_putPixel(uint64_t x, uint64_t y, uint32_t color)
 {
+    if (x >= fb_width || y >= fb_height)
+    {
+        return;
+    }
+
     uint32_t offset = (y * fb_pitch) + (x * 4);
     framebuffer[offset / 4] = color;
 }

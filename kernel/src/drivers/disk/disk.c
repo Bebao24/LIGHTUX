@@ -14,7 +14,7 @@ void InitializeDisk(Partition* partitionOut)
 	MBR_DetectPartition(partitionOut, partPtr);
 }
 
-void diskBytes(uint64_t sector, uint32_t sectorCount, void* buffer, bool write)
+bool diskBytes(uint64_t sector, uint32_t sectorCount, void* buffer, bool write)
 {
     PCI* browse = firstPCI;
     while (browse)
@@ -32,7 +32,7 @@ void diskBytes(uint64_t sector, uint32_t sectorCount, void* buffer, bool write)
         // We can't find the AHCI device
         debugf("[DISK] Can't find AHCI device!\n");
         memset(buffer, 0, sectorCount * SECTOR_SIZE);
-        return;
+        return false;
     }
 
     ahci* ahciPtr = (ahci*)browse->devicePtr;
@@ -44,22 +44,22 @@ void diskBytes(uint64_t sector, uint32_t sectorCount, void* buffer, bool write)
 
     if (write)
     {
-        AHCI_DiskWrite(ahciPtr, pos, &ahciPtr->mem->ports[pos], sector, sectorCount, buffer);
+        return AHCI_DiskWrite(ahciPtr, pos, &ahciPtr->mem->ports[pos], sector, sectorCount, buffer);
     }
     else
     {
-        AHCI_DiskRead(ahciPtr, pos, &ahciPtr->mem->ports[pos], sector, sectorCount, buffer);
+        return AHCI_DiskRead(ahciPtr, pos, &ahciPtr->mem->ports[pos], sector, sectorCount, buffer);
     }
 }
 
-void diskRead(uint64_t sector, uint32_t sectorCount, void* buffer)
+bool diskRead(uint64_t sector, uint32_t sectorCount, void* buffer)
 {
-    diskBytes(sector, sectorCount, buffer, false);
+    return diskBytes(sector, sectorCount, buffer, false);
 }
 
-void diskWrite(uint64_t sector, uint32_t sectorCount, void* buffer)
+bool diskWrite(uint64_t sector, uint32_t sectorCount, void* buffer)
 {
-    diskBytes(sector, sectorCount, buffer, true);
+    return diskBytes(sector, sectorCount, buffer, true);
 }
 
 

@@ -92,6 +92,18 @@ void kmain()
 	debugf("[DISK] partition offset: %d\n", partition.partitionOffset);
 	debugf("[DISK] partition size: %d\n", partition.partitionSize);
 
+	// Try to read the first partition
+	uint8_t buffer[512];
+	if (!MBR_ReadSectors(&partition, 0, 1, buffer))
+	{
+		debugf("Failed to read partition!\n");
+	}
+
+	for (int i = 0; i < 512; i++)
+	{
+		printf("%c", buffer[i]);
+	}
+
 	while (true)
 	{
 		char key = GetKey();

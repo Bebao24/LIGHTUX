@@ -121,8 +121,6 @@ void putc(char c)
 				g_ScreenY -= CHAR_HEIGHT;
 			}
 
-			
-
 			g_ScreenX -= CHAR_WIDTH;
 			// Use a rectangle to overwrite the text
 			fb_drawRect(g_ScreenX, g_ScreenY, CHAR_WIDTH, CHAR_HEIGHT, BACKGROUND_COLOR);

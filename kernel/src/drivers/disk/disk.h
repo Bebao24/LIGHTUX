@@ -7,9 +7,9 @@
 
 void InitializeDisk(Partition* partitionOut);
 
-void diskBytes(uint64_t sector, uint32_t sectorCount, void* buffer, bool write);
-void diskRead(uint64_t sector, uint32_t sectorCount, void* buffer);
-void diskWrite(uint64_t sector, uint32_t sectorCount, void* buffer);
+bool diskBytes(uint64_t sector, uint32_t sectorCount, void* buffer, bool write);
+bool diskRead(uint64_t sector, uint32_t sectorCount, void* buffer);
+bool diskWrite(uint64_t sector, uint32_t sectorCount, void* buffer);
 
 
 
