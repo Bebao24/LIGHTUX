@@ -18,7 +18,7 @@ void MBR_DetectPartition(Partition* part, void* partPtr)
     part->partitionSize = entry->sectorsCount;
 }
 
-bool MBR_ReadSectors(Partition* part, uint64_t sector, uint32_t sectorsCount, void* buffer)
+void MBR_ReadSectors(Partition* part, uint64_t sector, uint32_t sectorsCount, void* buffer)
 {
     diskRead(sector, sectorsCount + part->partitionOffset, buffer);
 }

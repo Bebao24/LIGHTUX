@@ -86,16 +86,11 @@ void kmain()
 		browse = browse->next;
 	}
 
-	// Detect our MBR disk partition
-	Partition part;
-	uint8_t mbrBytes[512];
-	diskRead(0, 1, mbrBytes);
+	Partition partition;
+	InitializeDisk(&partition);	
 
-	void* partPtr = &mbrBytes[446]; // First partition entry
-	MBR_DetectPartition(&part, partPtr);
-
-	debugf("[DISK] partition offset: %d\n", part.partitionOffset);
-	debugf("[DISK] partition size: %d\n", part.partitionSize);
+	debugf("[DISK] partition offset: %d\n", partition.partitionOffset);
+	debugf("[DISK] partition size: %d\n", partition.partitionSize);
 
 	while (true)
 	{

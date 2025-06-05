@@ -9,5 +9,5 @@ typedef struct
 } Partition;
 
 void MBR_DetectPartition(Partition* part, void* partPtr);
-bool MBR_ReadSectors(Partition* part, uint64_t sector, uint32_t sectorsCount, void* buffer);
+void MBR_ReadSectors(Partition* part, uint64_t sector, uint32_t sectorsCount, void* buffer);
 

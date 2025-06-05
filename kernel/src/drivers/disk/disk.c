@@ -4,6 +4,16 @@
 #include <logging.h>
 #include <memory.h>
 
+void InitializeDisk(Partition* partitionOut)
+{
+    // Detect our MBR disk partition
+	uint8_t mbrBytes[512];
+	diskRead(0, 1, mbrBytes);
+
+	void* partPtr = &mbrBytes[446]; // First partition entry
+	MBR_DetectPartition(partitionOut, partPtr);
+}
+
 void diskBytes(uint64_t sector, uint32_t sectorCount, void* buffer, bool write)
 {
     PCI* browse = firstPCI;

@@ -66,7 +66,7 @@ int strcmp(const char* a, const char* b)
         return 0;
     }
 
-    if (a == NULL | b == NULL)
+    if (a == NULL || b == NULL)
     {
         return -1;
     }
