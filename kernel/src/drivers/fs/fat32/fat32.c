@@ -2,8 +2,12 @@
 #include <disk.h>
 #include <logging.h>
 #include <console.h>
+#include <string.h>
+#include <memory.h>
+#include <ctype.h>
 
 #define MAX_NAME_LEN 256
+#define MAX_PATH_LEN 256
 
 typedef struct
 {
@@ -135,19 +139,10 @@ uint32_t FAT32_NextCluster(uint32_t cluster)
     return (*(uint32_t*)&buffer[fatIndex % SECTOR_SIZE]) & 0x0FFFFFFF;
 }
 
-bool FAT32_IsValidShortName(char* shortName)
-{
-    for (int i = 0; i < 11; i++) {
-        if (shortName[i] < 0x20 || shortName[i] > 0x7E)  // non-printable
-            return false;
-    }
-    return true;
-}
-
-bool FAT32_ListRootDir()
+bool FAT32_ListDirectoryEntry(uint32_t startCluster)
 {
     uint8_t buffer[SECTOR_SIZE];
-    uint32_t currentCluster = g_FatData.BootSector.BS.EBR32.RootDirectoryCluster;
+    uint32_t currentCluster = startCluster;
 
     while (currentCluster < 0x0FFFFFF8)
     {
@@ -167,21 +162,13 @@ bool FAT32_ListRootDir()
                 if (entries[j].Name[0] == 0x00)
                 {
                     // No more entries
-                    return true;
-                }
-                if (entries[j].Name[0] == 0xE5)
-                {
-                    // Deleted
                     continue;
                 }
-                if (entries[j].Attributes == 0x0F)
+                if (entries[j].Attributes == 0x0F ||
+                    entries[j].Name[0] == 0xE5 ||
+                    entries[j].Attributes == 0x08)
                 {
-                    // TODO: Handle LFN
-                    continue;
-                }
-                if (entries[j].Attributes == 0x08)
-                {
-                    // Volume label
+                    // Skip LFN, no more entries, deleted entry, volume label
                     continue;
                 }
 
@@ -196,5 +183,115 @@ bool FAT32_ListRootDir()
     }
 
     return true;
+}
+
+bool FAT32_FindDirectoryEntry(uint32_t startCluster, char* name, FAT32_DirectoryEntry* entryOut)
+{
+    uint8_t buffer[SECTOR_SIZE];
+    uint32_t currentCluster = startCluster;
+
+    while (currentCluster < 0x0FFFFFF8)
+    {
+        for (int i = 0; i < g_FatData.BootSector.BS.SectorsPerCluster; i++)
+        {
+            uint32_t lba = FAT32_ClusterToLba(currentCluster);
+
+            if (!diskRead(lba + i, 1, buffer))
+            {
+                debugf("[FAT32] Read error!\n");
+            }
+            FAT32_DirectoryEntry* entries = (FAT32_DirectoryEntry*)buffer;
+
+            for (int j = 0; j < SECTOR_SIZE / sizeof(FAT32_DirectoryEntry); j++)
+            {
+                if (entries[j].Name[0] == 0x00)
+                {
+                    // No more entries
+                    continue;
+                }
+                if (entries[j].Attributes == 0x0F ||
+                    entries[j].Name[0] == 0xE5 ||
+                    entries[j].Attributes == 0x08)
+                {
+                    // Skip LFN, no more entries, deleted entry, volume label
+                    continue;
+                }
+                if (!(entries[j].Attributes & 0x10))
+                {
+                    // Not a directory
+                    continue;
+                }
+
+                char entryName[MAX_NAME_LEN];
+                for (int i = 0; i < strlen(name); i++)
+                {
+                    name[i] = toupper(name[i]);
+                }
+
+
+                FAT32_ShortNameToName(entries[j].Name, entryName);
+
+                if (strcmp(entryName, name) == 0)
+                {
+                    *entryOut = entries[j];
+                    return true;
+                }
+            }
+        }
+
+        currentCluster = FAT32_NextCluster(currentCluster);
+    }
+
+    return false; // Not found
+}
+
+bool FAT32_ListDirectory(const char* path)
+{
+    uint32_t currentCluster = g_FatData.BootSector.BS.EBR32.RootDirectoryCluster;
+    FAT32_DirectoryEntry entry;
+
+    if (!path || path[0] == '\0' || (path[0] == '/' && path[1] == '\0'))
+    {
+        // Just return the root directory
+        return FAT32_ListDirectoryEntry(currentCluster);
+    }
+
+    // Ignore leading slash
+    if (path[0] == '/')
+    {
+        path++;
+    }
+
+    char name[MAX_PATH_LEN];
+    while (*path)
+    {
+        bool isLast = false;
+        const char* delim = strchr(path, '/');
+        if (delim != NULL)
+        {
+            memcpy(name, path, delim - path);
+            name[delim - path] = '\0';
+            path = delim + 1;
+        }
+        else
+        {
+            size_t len = strlen(path);
+            memcpy(name, path, len);
+            name[len] = '\0';
+            path += len;
+            isLast = true;
+        }
+
+        if (!FAT32_FindDirectoryEntry(currentCluster, name, &entry))
+        {
+            debugf("[FAT32] Directory entry not found!\n");
+            return false;
+        }
+
+        // Update the currentCluster
+        currentCluster = (entry.FirstClusterHigh << 16) | entry.FirstClusterLow;
+    }
+
+    return FAT32_ListDirectoryEntry(currentCluster);
 }
 

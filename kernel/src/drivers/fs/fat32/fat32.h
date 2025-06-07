@@ -20,4 +20,4 @@ typedef struct
 } __attribute__((packed)) FAT32_DirectoryEntry;
 
 bool FAT32_Initialize(Partition* partition);
-bool FAT32_ListRootDir();
+bool FAT32_ListDirectory(const char* path);

@@ -95,11 +95,13 @@ void kmain()
 		panic("[KERNEL] Failed to initialize FAT32 driver!\n");
 	}
 
-	// List the root directory
-	if (!FAT32_ListRootDir())
-	{
-		debugf("[FAT32] Failed to list root directory!\n");
-	}
+	// List directories test
+	printf("Root directory: \n");
+	FAT32_ListDirectory("/");
+	printf("/test: \n");
+	FAT32_ListDirectory("/test");
+	printf("/test/in: \n");
+	FAT32_ListDirectory("/test/in");
 
 	while (true)
 	{
