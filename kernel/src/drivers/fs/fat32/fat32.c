@@ -121,12 +121,12 @@ void FAT32_ShortNameToName(uint8_t* shortName, char* out)
     out[out_i] = '\0';
 }
 
-uint32_t FAT32_NextCluster(Partition* partition, uint32_t cluster)
+uint32_t FAT32_NextCluster(uint32_t cluster)
 {
     uint32_t fatIndex = cluster * 4;
     uint32_t lba = g_FatData.fatStartLba + (fatIndex / SECTOR_SIZE);
     uint8_t buffer[SECTOR_SIZE];
-    if (!MBR_ReadSectors(partition, lba, 1, buffer))
+    if (!diskRead(lba, 1, buffer))
     {
         debugf("[FAT32] Read error!\n");
         return 0xFFFFFFFF;
@@ -144,7 +144,7 @@ bool FAT32_IsValidShortName(char* shortName)
     return true;
 }
 
-bool FAT32_ListRootDir(Partition* partition)
+bool FAT32_ListRootDir()
 {
     uint8_t buffer[SECTOR_SIZE];
     uint32_t currentCluster = g_FatData.BootSector.BS.EBR32.RootDirectoryCluster;
@@ -154,7 +154,7 @@ bool FAT32_ListRootDir(Partition* partition)
         for (uint8_t i = 0; i < g_FatData.BootSector.BS.SectorsPerCluster; i++)
         {
             uint32_t lba = FAT32_ClusterToLba(currentCluster);
-            if (!MBR_ReadSectors(partition, lba + i, 1, buffer))
+            if (!diskRead(lba + i, 1, buffer))
             {
                 debugf("[FAT32] Read error!\n");
                 return false;
@@ -179,6 +179,11 @@ bool FAT32_ListRootDir(Partition* partition)
                     // TODO: Handle LFN
                     continue;
                 }
+                if (entries[j].Attributes == 0x08)
+                {
+                    // Volume label
+                    continue;
+                }
 
                 char name[MAX_NAME_LEN];
                 FAT32_ShortNameToName(entries[j].Name, name);
@@ -187,7 +192,7 @@ bool FAT32_ListRootDir(Partition* partition)
             }
         }
 
-        currentCluster = FAT32_NextCluster(partition, currentCluster);
+        currentCluster = FAT32_NextCluster(currentCluster);
     }
 
     return true;
