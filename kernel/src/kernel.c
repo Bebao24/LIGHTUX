@@ -24,6 +24,7 @@
 #include <disk.h>
 #include <memory.h>
 #include <mbr.h>
+#include <fat32.h>
 
 static volatile LIMINE_BASE_REVISION(3);
 
@@ -89,19 +90,15 @@ void kmain()
 	Partition partition;
 	InitializeDisk(&partition);	
 
-	debugf("[DISK] partition offset: %d\n", partition.partitionOffset);
-	debugf("[DISK] partition size: %d\n", partition.partitionSize);
-
-	// Try to read the first partition
-	uint8_t buffer[512];
-	if (!MBR_ReadSectors(&partition, 0, 1, buffer))
+	if (!FAT32_Initialize(&partition))
 	{
-		debugf("Failed to read partition!\n");
+		panic("[KERNEL] Failed to initialize FAT32 driver!\n");
 	}
 
-	for (int i = 0; i < 512; i++)
+	// List the root directory
+	if (!FAT32_ListRootDir())
 	{
-		printf("%c", buffer[i]);
+		debugf("[FAT32] Failed to list root directory!\n");
 	}
 
 	while (true)
