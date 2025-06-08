@@ -5,6 +5,7 @@
 #include <string.h>
 #include <memory.h>
 #include <ctype.h>
+#include <maths.h>
 
 #define MAX_NAME_LEN 256
 #define MAX_PATH_LEN 256
@@ -185,7 +186,7 @@ bool FAT32_ListDirectoryEntry(uint32_t startCluster)
     return true;
 }
 
-bool FAT32_FindDirectoryEntry(uint32_t startCluster, char* name, FAT32_DirectoryEntry* entryOut)
+bool FAT32_FindEntry(uint32_t startCluster, char* name, FAT32_DirectoryEntry* entryOut)
 {
     uint8_t buffer[SECTOR_SIZE];
     uint32_t currentCluster = startCluster;
@@ -216,11 +217,6 @@ bool FAT32_FindDirectoryEntry(uint32_t startCluster, char* name, FAT32_Directory
                     // Skip LFN, no more entries, deleted entry, volume label
                     continue;
                 }
-                if (!(entries[j].Attributes & 0x10))
-                {
-                    // Not a directory
-                    continue;
-                }
 
                 char entryName[MAX_NAME_LEN];
                 for (int i = 0; i < strlen(name); i++)
@@ -245,16 +241,10 @@ bool FAT32_FindDirectoryEntry(uint32_t startCluster, char* name, FAT32_Directory
     return false; // Not found
 }
 
-bool FAT32_ListDirectory(const char* path)
+bool FAT32_TraversePath(const char* path, FAT32_DirectoryEntry* entryOut)
 {
     uint32_t currentCluster = g_FatData.BootSector.BS.EBR32.RootDirectoryCluster;
     FAT32_DirectoryEntry entry;
-
-    if (!path || path[0] == '\0' || (path[0] == '/' && path[1] == '\0'))
-    {
-        // Just return the root directory
-        return FAT32_ListDirectoryEntry(currentCluster);
-    }
 
     // Ignore leading slash
     if (path[0] == '/')
@@ -265,7 +255,6 @@ bool FAT32_ListDirectory(const char* path)
     char name[MAX_PATH_LEN];
     while (*path)
     {
-        bool isLast = false;
         const char* delim = strchr(path, '/');
         if (delim != NULL)
         {
@@ -279,10 +268,9 @@ bool FAT32_ListDirectory(const char* path)
             memcpy(name, path, len);
             name[len] = '\0';
             path += len;
-            isLast = true;
         }
 
-        if (!FAT32_FindDirectoryEntry(currentCluster, name, &entry))
+        if (!FAT32_FindEntry(currentCluster, name, &entry))
         {
             debugf("[FAT32] Directory entry not found!\n");
             return false;
@@ -291,6 +279,72 @@ bool FAT32_ListDirectory(const char* path)
         // Update the currentCluster
         currentCluster = (entry.FirstClusterHigh << 16) | entry.FirstClusterLow;
     }
+
+    *entryOut = entry;
+    return true;
+}
+
+uint32_t FAT32_ReadFile(const char* path, void* buffer)
+{
+    FAT32_DirectoryEntry entry;
+    if (!FAT32_TraversePath(path, &entry))
+    {
+        return 0;
+    }
+
+    if (entry.Attributes & 0x10)
+    {
+        // It is a directory
+        debugf("%s is a directory!\n");
+        return 0;
+    }
+
+    uint32_t cluster = (entry.FirstClusterHigh << 16) | entry.FirstClusterLow;
+    uint32_t remaining = entry.Size;
+    uint8_t* u8Buffer = (uint8_t*)buffer;
+    uint8_t tmpBuffer[SECTOR_SIZE];
+
+    while (cluster < 0x0FFFFFF8 && remaining > 0)
+    {
+        for (uint8_t i = 0; i < g_FatData.BootSector.BS.SectorsPerCluster && remaining > 0; i++)
+        {
+            diskRead(FAT32_ClusterToLba(cluster) + i, 1, tmpBuffer);
+            uint32_t toCopy = remaining < SECTOR_SIZE ? remaining : SECTOR_SIZE;
+            memcpy(u8Buffer, tmpBuffer, toCopy); // Copy the data
+            u8Buffer += toCopy; // Increment buffer ptr
+            remaining -= toCopy;
+        }
+        cluster = FAT32_NextCluster(cluster);
+    }
+
+    // Return the size that we read
+    return u8Buffer - (uint8_t*)buffer;
+}
+
+bool FAT32_ListDirectory(const char* path)
+{
+    uint32_t currentCluster = g_FatData.BootSector.BS.EBR32.RootDirectoryCluster;
+    FAT32_DirectoryEntry entry;
+
+    if (!path || path[0] == '\0' || (path[0] == '/' && path[1] == '\0'))
+    {
+        // Just return the root directory
+        return FAT32_ListDirectoryEntry(currentCluster);
+    }
+
+    if (!FAT32_TraversePath(path, &entry))
+    {
+        return false;
+    }
+
+    if (!(entry.Attributes & 0x10))
+    {
+        // Not a directory
+        debugf("[FAT32] %s isn't a directory!\n", path);
+        return false;
+    }
+
+    currentCluster = (entry.FirstClusterHigh << 16) | entry.FirstClusterLow;
 
     return FAT32_ListDirectoryEntry(currentCluster);
 }

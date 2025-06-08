@@ -95,13 +95,21 @@ void kmain()
 		panic("[KERNEL] Failed to initialize FAT32 driver!\n");
 	}
 
-	// List directories test
-	printf("Root directory: \n");
-	FAT32_ListDirectory("/");
-	printf("/test: \n");
-	FAT32_ListDirectory("/test");
-	printf("/test/in: \n");
-	FAT32_ListDirectory("/test/in");
+	// Test reading file
+	// This FAT32 API is not ideal!
+	FAT32_DirectoryEntry entry;
+	if (FAT32_TraversePath("/test/in/test.txt", &entry))
+	{
+		uint8_t* buffer = malloc(entry.Size + SECTOR_SIZE);
+		FAT32_ReadFile("/test/in/test.txt", buffer);
+		for (int i = 0; i < entry.Size; i++)
+		{
+			putc(buffer[i]);
+		}
+		putc('\n');
+
+		free(buffer);
+	}
 
 	while (true)
 	{
