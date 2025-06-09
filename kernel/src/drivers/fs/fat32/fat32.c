@@ -284,14 +284,8 @@ bool FAT32_TraversePath(const char* path, FAT32_DirectoryEntry* entryOut)
     return true;
 }
 
-uint32_t FAT32_ReadFile(const char* path, void* buffer)
+uint32_t FAT32_ReadFile(FAT32_DirectoryEntry entry, void* buffer)
 {
-    FAT32_DirectoryEntry entry;
-    if (!FAT32_TraversePath(path, &entry))
-    {
-        return 0;
-    }
-
     if (entry.Attributes & 0x10)
     {
         // It is a directory

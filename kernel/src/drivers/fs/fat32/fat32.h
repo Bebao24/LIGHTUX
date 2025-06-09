@@ -22,4 +22,4 @@ typedef struct
 bool FAT32_Initialize(Partition* partition);
 bool FAT32_ListDirectory(const char* path);
 bool FAT32_TraversePath(const char* path, FAT32_DirectoryEntry* entryOut);
-uint32_t FAT32_ReadFile(const char* path, void* buffer);
+uint32_t FAT32_ReadFile(FAT32_DirectoryEntry entry, void* buffer);

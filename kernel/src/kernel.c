@@ -96,12 +96,11 @@ void kmain()
 	}
 
 	// Test reading file
-	// This FAT32 API is not ideal!
 	FAT32_DirectoryEntry entry;
 	if (FAT32_TraversePath("/test/in/test.txt", &entry))
 	{
 		uint8_t* buffer = malloc(entry.Size + SECTOR_SIZE);
-		FAT32_ReadFile("/test/in/test.txt", buffer);
+		FAT32_ReadFile(entry, buffer);
 		for (int i = 0; i < entry.Size; i++)
 		{
 			putc(buffer[i]);
