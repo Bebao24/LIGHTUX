@@ -107,7 +107,10 @@ void launchShell()
                 path = argv[1];
             }
 
-            FAT32_ListDirectory(path);
+            if (!FAT32_ListDirectory(path))
+            {
+                printf("Failed to list current directory!\n");
+            }
         }
         else if (strcmp("read", argv[0]) == 0)
         {
