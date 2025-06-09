@@ -56,7 +56,7 @@ void IRQKeyboardHandler(cpu_registers_t* cpu_status)
 
     if (key != 0)
     {
-        putc(key);
+        g_KeyInfo->key = key;
     }
 
     return;

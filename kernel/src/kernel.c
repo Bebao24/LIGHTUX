@@ -25,26 +25,9 @@
 #include <memory.h>
 #include <mbr.h>
 #include <fat32.h>
+#include <shell.h>
 
 static volatile LIMINE_BASE_REVISION(3);
-
-void test1()
-{
-	debugf("Hello World from task1!\n");
-
-	while (true)
-	{
-	}
-}
-
-void test2()
-{
-	debugf("Hello World from task2!\n");
-
-	while (true)
-	{
-	}
-}
 
 void kmain()
 {
@@ -57,10 +40,6 @@ void kmain()
 
 	InitializeFramebuffer(); // Limine mapped the framebuffer
 	InitializeConsole();
-
-	// Testing printf()
-	printf("Hello World!\n");
-	printf("It works because it can print out 0x%x\n", 0x123);
 
 	InitializePMM();
 	InitializePaging();
@@ -77,15 +56,6 @@ void kmain()
 	InitializeTask();
 
 	InitializePCI();
-	printf("PCI detection: \n");
-
-	// Print all PCI devices' info
-	PCI* browse = firstPCI;
-	while (browse)
-	{
-		printf("Vendor ID: %x, Device ID: %x\n", browse->vendorID, browse->deviceID);
-		browse = browse->next;
-	}
 
 	Partition partition;
 	InitializeDisk(&partition);	
@@ -95,32 +65,7 @@ void kmain()
 		panic("[KERNEL] Failed to initialize FAT32 driver!\n");
 	}
 
-	// Test reading file
-	FAT32_DirectoryEntry entry;
-	if (FAT32_TraversePath("/test/in/test.txt", &entry))
-	{
-		uint8_t* buffer = malloc(entry.Size + SECTOR_SIZE);
-		FAT32_ReadFile(entry, buffer);
-		for (int i = 0; i < entry.Size; i++)
-		{
-			putc(buffer[i]);
-		}
-		putc('\n');
-
-		free(buffer);
-	}
-
-	while (true)
-	{
-		char key = GetKey();
-
-		if (key == '\r')
-		{
-			printf("\n");
-		}
-
-		putc(key);
-	}
+	launchShell();
 
 	halt();
 }
