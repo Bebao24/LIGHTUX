@@ -121,28 +121,22 @@ void launchShell()
             }
 
             const char* path = argv[1];
-            FAT32_DirectoryEntry entry;
-            if (!FAT32_TraversePath(path, &entry))
-            {
-                printf("%s not found!\n", path);
-                continue;
-            }
+            // Open the file
+            FAT32_FileHandle* handle = FAT32_Open(path);
+            uint8_t buffer[512]; // We read file data in chunks instead of a whole block at once
+            uint32_t read;
 
-            char* buffer = malloc(entry.Size);
-            if (!FAT32_ReadFile(entry, buffer))
+            while ((read = FAT32_Read(handle, buffer, sizeof(buffer))))
             {
-                printf("Failed to read file %s\n", path);
-                free(buffer);
-                continue;
+                for (uint32_t i = 0; i < read; i++)
+                {
+                    putc(buffer[i]);
+                }
             }
-
-            // Display the file content
-            for (uint32_t i = 0; i < entry.Size; i++)
-            {
-                putc(buffer[i]);
-            }
-
             printf("\n");
+
+            FAT32_Close(handle);
+            
         }
         else if (strcmp("lspci", argv[0]) == 0)
         {

@@ -6,6 +6,7 @@
 #include <memory.h>
 #include <ctype.h>
 #include <maths.h>
+#include <heap.h>
 
 #define MAX_NAME_LEN 256
 #define MAX_PATH_LEN 256
@@ -95,6 +96,25 @@ bool FAT32_Initialize(Partition* partition)
     debugf("[FAT32] Cluster start LBA: %d\n", g_FatData.clusterStartLba);
 
     return true;
+}
+
+FAT32_FileHandle* FAT32_Open(const char* path)
+{
+    // Traverse the path & make sure that it exists
+    FAT32_DirectoryEntry entry;
+    if (!FAT32_TraversePath(path, &entry))
+    {
+        debugf("[FAT32] File not found: %s\n", path);
+        return NULL;
+    }
+
+    FAT32_FileHandle* handleOut = (FAT32_FileHandle*)malloc(sizeof(FAT32_FileHandle));
+    handleOut->isDirectory = (entry.Attributes & 0x10) != 0;
+    handleOut->size = entry.Size;
+    handleOut->currentCluster = (entry.FirstClusterHigh << 16) | entry.FirstClusterLow;
+    handleOut->currentOffset = 0;
+    
+    return handleOut;
 }
 
 uint32_t FAT32_ClusterToLba(uint32_t cluster)
@@ -246,6 +266,15 @@ bool FAT32_TraversePath(const char* path, FAT32_DirectoryEntry* entryOut)
     uint32_t currentCluster = g_FatData.BootSector.BS.EBR32.RootDirectoryCluster;
     FAT32_DirectoryEntry entry;
 
+    if (path[0] == '/' && path[1] == '\0')
+    {
+        memset(entryOut, 0, sizeof(FAT32_DirectoryEntry));
+        entryOut->Attributes = 0x10; // Mark as directory
+        entryOut->FirstClusterLow = (g_FatData.BootSector.BS.EBR32.RootDirectoryCluster >> 16);
+        entryOut->FirstClusterHigh = (g_FatData.BootSector.BS.EBR32.RootDirectoryCluster & 0xFFFF);
+        return true;
+    }
+
     // Ignore leading slash
     if (path[0] == '/')
     {
@@ -284,34 +313,72 @@ bool FAT32_TraversePath(const char* path, FAT32_DirectoryEntry* entryOut)
     return true;
 }
 
-uint32_t FAT32_ReadFile(FAT32_DirectoryEntry entry, void* buffer)
+uint32_t FAT32_Read(FAT32_FileHandle* handle, void* buffer, uint32_t bytesCount)
 {
-    if (entry.Attributes & 0x10)
+    if (handle->isDirectory)
     {
-        // It is a directory
         debugf("%s is a directory!\n");
         return 0;
     }
 
-    uint32_t cluster = (entry.FirstClusterHigh << 16) | entry.FirstClusterLow;
-    uint32_t remaining = entry.Size;
+    uint32_t remaining;
+    
+    remaining = min(bytesCount, handle->size - handle->currentOffset);
+    
+    if (remaining == 0)
+    {
+        // EOF (or bytesCount is 0)
+        return 0;
+    }
+
     uint8_t* u8Buffer = (uint8_t*)buffer;
     uint8_t tmpBuffer[SECTOR_SIZE];
 
+    uint32_t offset = handle->currentOffset;
+    uint32_t cluster = handle->currentCluster;
+
+    uint32_t clusterSize = g_FatData.BootSector.BS.SectorsPerCluster * SECTOR_SIZE;
+    uint32_t skippedBytes = offset % clusterSize; // Just the remainder
+
     while (cluster < 0x0FFFFFF8 && remaining > 0)
     {
+        uint32_t lba = FAT32_ClusterToLba(cluster);
         for (uint8_t i = 0; i < g_FatData.BootSector.BS.SectorsPerCluster && remaining > 0; i++)
         {
-            diskRead(FAT32_ClusterToLba(cluster) + i, 1, tmpBuffer);
-            uint32_t toCopy = remaining < SECTOR_SIZE ? remaining : SECTOR_SIZE;
-            memcpy(u8Buffer, tmpBuffer, toCopy); // Copy the data
-            u8Buffer += toCopy; // Increment buffer ptr
+            if (!diskRead(lba + i, 1, tmpBuffer))
+            {
+                debugf("[FAT32] Read error!\n");
+                goto end;
+            }
+
+            uint8_t* tmpBufferPtr = tmpBuffer;
+
+            // Calculate how many bytes we should copy
+            uint32_t toCopy = SECTOR_SIZE;
+            if (skippedBytes >= SECTOR_SIZE)
+            {
+                skippedBytes -= SECTOR_SIZE;
+                continue; // Don't copy this sector
+            }
+            else if (skippedBytes > 0)
+            {
+                tmpBufferPtr += skippedBytes;
+                toCopy -= skippedBytes;
+                skippedBytes = 0;
+            }
+
+            toCopy = min(toCopy, remaining);
+            memcpy(u8Buffer, tmpBufferPtr, toCopy);
+            u8Buffer += toCopy;
             remaining -= toCopy;
+            handle->currentOffset += toCopy;
         }
+
         cluster = FAT32_NextCluster(cluster);
+        handle->currentCluster = cluster;
     }
 
-    // Return the size that we read
+end:
     return u8Buffer - (uint8_t*)buffer;
 }
 
@@ -341,5 +408,11 @@ bool FAT32_ListDirectory(const char* path)
     currentCluster = (entry.FirstClusterHigh << 16) | entry.FirstClusterLow;
 
     return FAT32_ListDirectoryEntry(currentCluster);
+}
+
+void FAT32_Close(FAT32_FileHandle* handle)
+{
+    // Just call free()
+    free(handle);
 }
 

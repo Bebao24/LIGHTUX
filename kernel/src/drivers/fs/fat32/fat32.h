@@ -19,7 +19,19 @@ typedef struct
     uint32_t Size;
 } __attribute__((packed)) FAT32_DirectoryEntry;
 
+typedef struct
+{
+    uint32_t size;
+    uint32_t currentCluster;
+    uint32_t currentOffset;
+    bool isDirectory;
+} FAT32_FileHandle;
+
 bool FAT32_Initialize(Partition* partition);
+FAT32_FileHandle* FAT32_Open(const char* path);
+
 bool FAT32_ListDirectory(const char* path);
 bool FAT32_TraversePath(const char* path, FAT32_DirectoryEntry* entryOut);
-uint32_t FAT32_ReadFile(FAT32_DirectoryEntry entry, void* buffer);
+uint32_t FAT32_Read(FAT32_FileHandle* handle, void* buffer, uint32_t bytesCount);
+
+void FAT32_Close(FAT32_FileHandle* handle);
