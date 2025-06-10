@@ -317,7 +317,7 @@ uint32_t FAT32_Read(FAT32_FileHandle* handle, void* buffer, uint32_t bytesCount)
 {
     if (handle->isDirectory)
     {
-        debugf("%s is a directory!\n");
+        debugf("This is a directory!\n");
         return 0;
     }
 
