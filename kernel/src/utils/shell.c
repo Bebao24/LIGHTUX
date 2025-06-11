@@ -50,6 +50,15 @@ void launchShell()
 
                 continue;
             }
+            if (key == '\t')
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    cmdString[inputLen++] = ' ';
+                }
+                printf("\t");
+                continue;
+            }
 
             cmdString[inputLen++] = key;
             putc(key);
