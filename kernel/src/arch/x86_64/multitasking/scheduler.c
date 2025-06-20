@@ -7,10 +7,13 @@
 #include <stack.h>
 #include <pmm.h>
 #include <vmm.h>
+#include <gdt.h>
 
 extern void asm_finalizeScheduler(uint64_t newStack, uint64_t newPageDir);
 
 void schedulerDeleteTask(size_t taskId);
+
+extern TSSPtr* tssPtr;
 
 void schedule(cpu_registers_t* cpu_status)
 {
@@ -64,6 +67,9 @@ void schedule(cpu_registers_t* cpu_status)
     
     task_t* oldTask = currentTask;
     currentTask = nextTask;
+
+    // Change TSS rsp0
+    tssPtr->rsp0 = nextTask->rsp0;
 
     // Save the cpu registers
     memcpy(&oldTask->cpu_status, cpu_status, sizeof(cpu_registers_t));
