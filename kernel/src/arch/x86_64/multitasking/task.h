@@ -24,9 +24,11 @@ typedef struct Task
     uint8_t status;
     cpu_registers_t cpu_status;
     uint64_t* pageDir;
+    uint64_t rsp0;
 
     char* taskName;
     size_t taskNameLen;
+    bool isKernelTask;
 
     struct Task* next;
 } task_t;
@@ -39,7 +41,7 @@ extern bool schedulerReady;
 
 void InitializeTask();
 
-task_t* TaskCreate(uint64_t entry, uint64_t* pageDir, void* arg);
+task_t* TaskCreate(uint64_t entry, uint64_t* pageDir, void* arg, bool isKernelTask);
 void TaskFree(task_t* target);
 void TaskKill(size_t id);
 task_t* TaskGet(size_t id);

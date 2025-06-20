@@ -69,7 +69,7 @@ void TaskFree(task_t* target)
     free(target);
 }
 
-task_t* TaskCreate(uint64_t entry, uint64_t* pageDir, void* arg)
+task_t* TaskCreate(uint64_t entry, uint64_t* pageDir, void* arg, bool isKernelTask)
 {
     task_t* task = TaskAllocate();
 
@@ -77,9 +77,25 @@ task_t* TaskCreate(uint64_t entry, uint64_t* pageDir, void* arg)
     task->status = TASK_STATUS_CREATED; // Not ready yet
     task->pageDir = pageDir;
 
-    task->cpu_status.ss = GDT_KERNEL_DATA;
-    task->cpu_status.cs = GDT_KERNEL_CODE;
-    task->cpu_status.rsp = (uint64_t)StackAllocate();
+    // Setup the code & stack selector
+    // Also setup the stack
+    if (isKernelTask)
+    {
+        task->cpu_status.ss = GDT_KERNEL_DATA;
+        task->cpu_status.cs = GDT_KERNEL_CODE;
+        task->cpu_status.rsp = (uint64_t)StackAllocate();
+    }
+    else
+    {
+        task->cpu_status.ss = GDT_USER_DATA | 0x03;
+        task->cpu_status.cs = GDT_USER_CODE | 0x03;
+
+        task->cpu_status.rsp = USER_STACK_TOP;
+        StackGenerateUser(task);
+    }
+
+    task->rsp0 = (uint64_t)StackAllocate();
+    task->isKernelTask = isKernelTask;
     task->cpu_status.rflags = 0x202; // Enable interrupts and a legacy feature
     task->cpu_status.rip = entry;
     task->cpu_status.rdi = (uint64_t)arg;
@@ -160,13 +176,15 @@ void InitializeTask()
     currentTask->status = TASK_STATUS_READY;
     currentTask->pageDir = GetPageDir();
     currentTask->cpu_status.rflags = 0x202;
+    currentTask->isKernelTask = true;
+    currentTask->rsp0 = (uint64_t)StackAllocate();
     taskName(currentTask, TASK_KERNEL_NAME, sizeof(TASK_KERNEL_NAME));
 
     debugf("[TASK] Ready for basic multitasking!\n");
     taskInitialized = true;
 
     // Create a dummy task
-    dummyTask = TaskCreate((uint64_t)idle, paging_AllocatePD(), 0);
+    dummyTask = TaskCreate((uint64_t)idle, paging_AllocatePD(), 0, false);
     dummyTask->status = TASK_STATUS_DUMMY;
 
     taskName(dummyTask, TASK_DUMMY_NAME, sizeof(TASK_DUMMY_NAME));
