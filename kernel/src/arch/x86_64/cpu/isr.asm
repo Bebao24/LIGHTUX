@@ -72,6 +72,15 @@ asm_finalizeScheduler:
 
 isr_common:
     save_context
+
+    ; Use the kernel data selector
+    mov bx, 0x10
+    mov ds, bx
+    mov es, bx
+    mov ss, bx
+    mov fs, bx
+    mov gs, bx
+
     mov rdi, rsp ;; Pass the stack to the C handler
     call interrupt_handler
     restore_context

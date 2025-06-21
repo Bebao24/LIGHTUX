@@ -96,7 +96,7 @@ task_t* TaskCreate(uint64_t entry, uint64_t* pageDir, void* arg, bool isKernelTa
 
     task->rsp0 = (uint64_t)StackAllocate();
     task->isKernelTask = isKernelTask;
-    task->cpu_status.rflags = 0x202; // Enable interrupts and a legacy feature
+    task->cpu_status.rflags = 0x202; // IF = 1
     task->cpu_status.rip = entry;
     task->cpu_status.rdi = (uint64_t)arg;
     task->cpu_status.rbp = 0;

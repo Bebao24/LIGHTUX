@@ -1,6 +1,7 @@
 #include "gdt.h"
 #include <stdint.h>
 #include <memory.h>
+#include <logging.h>
 
 static uint64_t gdtEntries[7];
 static uint64_t tssDescriptor[2];
@@ -39,7 +40,7 @@ void ConstructTSSDescriptor(uint64_t base, uint64_t* descriptor)
     descriptor[1] = high;
 }
 
-void GDTLoadTSS(TSSPtr* ptr)
+void GDTLoadTSS()
 {
     asm volatile("ltr %0" : : "rm"((uint16_t)GDT_TSS) : "memory");
 }

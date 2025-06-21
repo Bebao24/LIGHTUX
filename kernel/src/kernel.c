@@ -29,6 +29,36 @@
 
 static volatile LIMINE_BASE_REVISION(3);
 
+#define USER_BINARY_BASE 0x00400000
+
+void TestUserspace()
+{
+	// Create the userspace task
+	char* name = "Userspace task";
+	task_t* task = TaskCreate(USER_BINARY_BASE, paging_AllocatePD(), 0, false);
+	taskName(task, name, sizeof(name));
+
+	uint64_t* oldPageDir = GetPageDir();
+	ChangePageDirFake(task->pageDir);
+
+	// Map the binary base address
+	uint8_t binaryData[] = { 0xEB, 0xFE }; // jmp $
+	size_t binarySize = sizeof(binaryData);
+
+	size_t pagesCount = (binarySize + PAGE_SIZE - 1) / PAGE_SIZE;
+	for (size_t i = 0; i < pagesCount; i++)
+	{
+		paging_MapPage((void*)(USER_BINARY_BASE + i * PAGE_SIZE), pmm_AllocatePage(), PF_RW | PF_USER);
+	}
+
+	// Copy the binary data
+	memcpy((void*)USER_BINARY_BASE, binaryData, binarySize);
+
+	ChangePageDirFake(oldPageDir);
+
+	task->status = TASK_STATUS_READY;
+}
+
 void kmain()
 {
 	if (LIMINE_BASE_REVISION_SUPPORTED == false)
@@ -58,14 +88,16 @@ void kmain()
 	InitializePCI();
 
 	Partition partition;
-	InitializeDisk(&partition);	
+	InitializeDisk(&partition);
 
 	if (!FAT32_Initialize(&partition))
 	{
 		panic("[KERNEL] Failed to initialize FAT32 driver!\n");
 	}
 
-	launchShell();
+	TestUserspace();
+
+	// launchShell();
 
 	halt();
 }
