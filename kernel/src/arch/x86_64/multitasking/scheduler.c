@@ -74,7 +74,7 @@ void schedule(cpu_registers_t* cpu_status)
     // Save the cpu registers
     memcpy(&oldTask->cpu_status, cpu_status, sizeof(cpu_registers_t));
 
-    cpu_registers_t* iretqRsp = (cpu_registers_t*)(nextTask->cpu_status.rsp - sizeof(cpu_registers_t));
+    cpu_registers_t* iretqRsp = (cpu_registers_t*)(nextTask->rsp0 - sizeof(cpu_registers_t));
     memcpy(iretqRsp, &nextTask->cpu_status, sizeof(cpu_registers_t));
 
     ChangePageDirFake(nextTask->pageDir);
