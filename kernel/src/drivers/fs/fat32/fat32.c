@@ -146,6 +146,31 @@ void FAT32_ShortNameToName(uint8_t* shortName, char* out)
     out[out_i] = '\0';
 }
 
+bool FAT32_IsShortName(char* fileName, size_t len)
+{
+    int dotLocation =  0;
+    for (size_t i = 0; i < len; i++)
+    {
+        if (fileName[i] == '.')
+        {
+            // We found the extension character
+            dotLocation = i;
+        }
+        else if (!isupper(fileName[i]) && fileName[i] != 0x20)
+        {
+            // 0x20 is an upper NULL character
+            return false;
+        }
+    }
+
+    if (dotLocation && dotLocation < (len - 1 - 3))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 uint32_t FAT32_NextCluster(uint32_t cluster)
 {
     uint32_t fatIndex = cluster * 4;
@@ -194,9 +219,13 @@ bool FAT32_ListDirectoryEntry(uint32_t startCluster)
                 }
 
                 char name[MAX_NAME_LEN];
-                FAT32_ShortNameToName(entries[j].Name, name);
 
-                printf("%s\n", name);
+                // Check if it is actually a short name
+                if (FAT32_IsShortName(entries[j].Name, sizeof(entries[j].Name)))
+                {
+                    FAT32_ShortNameToName(entries[j].Name, name);
+                    printf("%s\n", name);
+                }
             }
         }
 
@@ -244,8 +273,10 @@ bool FAT32_FindEntry(uint32_t startCluster, char* name, FAT32_DirectoryEntry* en
                     name[i] = toupper(name[i]);
                 }
 
-
-                FAT32_ShortNameToName(entries[j].Name, entryName);
+                if (FAT32_IsShortName(entries[j].Name, sizeof(entries[j].Name)))
+                {
+                    FAT32_ShortNameToName(entries[j].Name, entryName);
+                }
 
                 if (strcmp(entryName, name) == 0)
                 {
