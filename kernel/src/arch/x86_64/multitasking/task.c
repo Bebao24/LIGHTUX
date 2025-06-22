@@ -78,22 +78,19 @@ task_t* TaskCreate(uint64_t entry, uint64_t* pageDir, void* arg, bool isKernelTa
     task->pageDir = pageDir;
 
     // Setup the code & stack selector
-    // Also setup the stack
     if (isKernelTask)
     {
         task->cpu_status.ss = GDT_KERNEL_DATA;
         task->cpu_status.cs = GDT_KERNEL_CODE;
-        task->cpu_status.rsp = (uint64_t)StackAllocate();
     }
     else
     {
         task->cpu_status.ss = GDT_USER_DATA | 0x03;
         task->cpu_status.cs = GDT_USER_CODE | 0x03;
-
-        task->cpu_status.rsp = USER_STACK_TOP;
-        StackGenerateUser(task);
     }
 
+    StackGenerateUser(task);
+    task->cpu_status.rsp = USER_STACK_TOP;
     task->rsp0 = (uint64_t)StackAllocate();
     task->isKernelTask = isKernelTask;
     task->cpu_status.rflags = 0x202; // Enable interrupts and a legacy feature

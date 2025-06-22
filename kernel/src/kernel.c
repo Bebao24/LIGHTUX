@@ -26,8 +26,36 @@
 #include <mbr.h>
 #include <fat32.h>
 #include <shell.h>
+#include <spinlock.h>
 
 static volatile LIMINE_BASE_REVISION(3);
+
+uint8_t userspaceCode[] = {
+	0xeb, 0xfe // jmp $
+};
+
+#define USER_BINARY_BASE 0x00400000
+
+void TestUserspace()
+{
+	// Create the userspace task
+	task_t* task = TaskCreate(USER_BINARY_BASE, paging_AllocatePD(), 0, false);
+
+	uint8_t* codePage = (uint8_t*)USER_BINARY_BASE;
+	// Map the code page
+	uint64_t* oldPageDir = GetPageDir();
+	ChangePageDirUnsafe(task->pageDir);
+
+	paging_MapPage(codePage, pmm_AllocatePage(), PF_USER | PF_RW);
+	memset(codePage, 0, PAGE_SIZE);
+
+	// Copy the code
+	codePage[0] = userspaceCode[0];
+	codePage[1] = userspaceCode[1];
+	ChangePageDirUnsafe(oldPageDir);
+
+	task->status = TASK_STATUS_READY;
+}
 
 void kmain()
 {
@@ -54,6 +82,8 @@ void kmain()
 	InitializeTimer();
 
 	InitializeTask();
+
+	TestUserspace();
 
 	InitializePCI();
 

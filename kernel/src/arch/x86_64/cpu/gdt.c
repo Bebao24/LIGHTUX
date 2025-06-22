@@ -2,8 +2,15 @@
 #include <stdint.h>
 #include <memory.h>
 
-static uint64_t gdtEntries[7];
-static uint64_t tssDescriptor[2];
+typedef struct
+{
+    uint16_t Limit;
+    uint16_t BaseLow;
+    uint8_t BaseMid;
+    uint8_t Access;
+    uint8_t Granularity;
+    uint8_t BaseHigh;
+} __attribute__((packed)) GDTEntry;
 
 typedef struct
 {
@@ -11,79 +18,107 @@ typedef struct
     uint64_t Base;
 } __attribute__((packed)) GDTR;
 
+typedef struct
+{
+    uint16_t Length;
+    uint16_t BaseLow;
+    uint8_t BaseMid;
+    uint8_t Flags1;
+    uint8_t Flags2;
+    uint8_t BaseHigh;
+    uint32_t BaseUpper;
+    uint32_t Reserved;
+} __attribute__((packed)) TSSEntry;
+
+typedef struct
+{
+    GDTEntry descriptors[5];
+    TSSEntry tss;
+} __attribute__((packed)) GDTEntries;
+
 // Setup the GDTR
 static GDTR gdtr;
 static TSSPtr tss;
+static GDTEntries gdt;
 
 TSSPtr* tssPtr = &tss;
 
 extern void LoadGDT(GDTR* gdtr);
 
-void ConstructTSSDescriptor(uint64_t base, uint64_t* descriptor)
-{
-    // Construct the TSS descriptor from the TSS Ptr
-    // The TSS descriptor is 128 bits
-    uint64_t high = 0;
-    uint64_t low = 0;
-
-    low |= sizeof(TSSPtr) - 1; // Limit
-    low |= (base & 0xFFFFFF) << 16; // Lower base
-    low |= (uint64_t)0x9 << 40; // Type = 0x9 (64 bits TSS)
-    low |= (uint64_t)1 << 47; // Present
-    low |= ((base >> 24) & 0xFF) << 56; // Middle base
-
-    high |= (base >> 32); // Upper base
-
-    // Assign the descriptor
-    descriptor[0] = low;
-    descriptor[1] = high;
-}
-
 void GDTLoadTSS(TSSPtr* ptr)
 {
+    // Construct the TSS base
+    uint64_t addr = (uint64_t)ptr;
+
+    gdt.tss.BaseLow = (uint16_t)addr;
+    gdt.tss.BaseMid = (uint16_t)(addr >> 16);
+    gdt.tss.Flags1 = 0b10001001;
+    gdt.tss.Flags2 = 0;
+    gdt.tss.BaseHigh = (uint8_t)(addr >> 24);
+    gdt.tss.BaseUpper = (uint32_t)(addr >> 32);
+    gdt.tss.Reserved = 0;
+
     asm volatile("ltr %0" : : "rm"((uint16_t)GDT_TSS) : "memory");
 }
 
 void InitializeGDT()
 {
-    // NULL entry
-    gdtEntries[0] = 0;
+    // NULL descriptor
+    gdt.descriptors[0].Limit = 0;
+    gdt.descriptors[0].BaseLow = 0;
+    gdt.descriptors[0].BaseMid = 0;
+    gdt.descriptors[0].Access = 0;
+    gdt.descriptors[0].Granularity = 0;
+    gdt.descriptors[0].BaseHigh = 0;
 
-    // Kernel code entry
-    uint64_t kernelCode = 0;
-    kernelCode |= 0b1011 << 8; // kernel code
-    kernelCode |= 1 << 12; // Not a system descriptor
-    kernelCode |= 0 << 13; // DPL = 0
-    kernelCode |= 1 << 15; // Present
-    kernelCode |= 1 << 21; // Long mode segment
-    gdtEntries[1] = kernelCode << 32;
+    // Kernel code 64 bits
+    gdt.descriptors[1].Limit = 0;
+    gdt.descriptors[1].BaseLow = 0;
+    gdt.descriptors[1].BaseMid = 0;
+    gdt.descriptors[1].Access = 0b10011010;
+    gdt.descriptors[1].Granularity = 0b00100000;
+    gdt.descriptors[1].BaseHigh = 0;
 
-    uint64_t kernelData = 0;
-    kernelData |= 0b0011 << 8; // kernel data
-    kernelData |= 1 << 12; // Not a system descriptor
-    kernelData |= 0 << 13; // DPL = 0
-    kernelData |= 1 << 15; // Present
-    kernelData |= 1 << 21; // Long mode segment
-    gdtEntries[2] = kernelData << 32;
+    // Kernel data 64 bits
+    gdt.descriptors[2].Limit = 0;
+    gdt.descriptors[2].BaseLow = 0;
+    gdt.descriptors[2].BaseMid = 0;
+    gdt.descriptors[2].Access = 0b10010010;
+    gdt.descriptors[2].Granularity = 0;
+    gdt.descriptors[2].BaseHigh = 0;
 
-    uint64_t userCode = kernelCode | (3 << 13); // DPL = 3
-    gdtEntries[3] = userCode;
+    // User code 64 bits
+    gdt.descriptors[3].Limit = 0;
+    gdt.descriptors[3].BaseLow = 0;
+    gdt.descriptors[3].BaseMid = 0;
+    gdt.descriptors[3].Access = 0b11111010;
+    gdt.descriptors[3].Granularity = 0b00100000;
+    gdt.descriptors[3].BaseHigh = 0;
 
-    uint64_t userData = kernelData | (3 << 13); // DPL = 3
-    gdtEntries[4] = userData;
+    // User data 64 bits
+    gdt.descriptors[4].Limit = 0;
+    gdt.descriptors[4].BaseLow = 0;
+    gdt.descriptors[4].BaseMid = 0;
+    gdt.descriptors[4].Access = 0b11110010;
+    gdt.descriptors[4].Granularity = 0;
+    gdt.descriptors[4].BaseHigh = 0;
 
-    // Add the TSS to the GDT entries
-    ConstructTSSDescriptor((uint64_t)&tss, tssDescriptor);
-    gdtEntries[5] = tssDescriptor[0];
-    gdtEntries[6] = tssDescriptor[1];
+    // TSS 64 bits
+    // We will construct this later (after the GDT is loaded)
+    gdt.tss.Length = 104;
+    gdt.tss.BaseLow = 0;
+    gdt.tss.BaseMid = 0;
+    gdt.tss.Flags1 = 0b10001001;
+    gdt.tss.Flags2 = 0;
+    gdt.tss.BaseHigh = 0;
+    gdt.tss.BaseUpper = 0;
+    gdt.tss.Reserved = 0;
 
-    gdtr.Limit = sizeof(gdtEntries) - 1;
-    gdtr.Base = (uint64_t)gdtEntries;
+    gdtr.Limit = sizeof(GDTEntries) - 1;
+    gdtr.Base = (uint64_t)&gdt;
 
-    // Load and flush the GDT
     LoadGDT(&gdtr);
 
-    // Load the TSS
     memset(&tss, 0, sizeof(TSSPtr));
     GDTLoadTSS(&tss);
 }

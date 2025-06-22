@@ -77,6 +77,13 @@ void schedule(cpu_registers_t* cpu_status)
     cpu_registers_t* iretqRsp = (cpu_registers_t*)(nextTask->rsp0 - sizeof(cpu_registers_t));
     memcpy(iretqRsp, &nextTask->cpu_status, sizeof(cpu_registers_t));
 
+    // debugf("IRETQ frame: \n");
+    // debugf("SS: 0x%x\n", nextTask->cpu_status.ss);
+    // debugf("RSP: 0x%llx\n", nextTask->cpu_status.rsp);
+    // debugf("RFLAGS: 0x%x\n", nextTask->cpu_status.rflags);
+    // debugf("CS: 0x%x\n", nextTask->cpu_status.cs);
+    // debugf("RIP: 0x%lx\n", nextTask->cpu_status.rip);
+
     ChangePageDirFake(nextTask->pageDir);
 
     PIC_SendEOI(0);

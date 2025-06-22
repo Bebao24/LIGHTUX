@@ -66,6 +66,7 @@ void interrupt_handler(cpu_registers_t* cpu_status)
             asm volatile("movq %%cr2, %0" : "=r"(pageFault_addr));
             debugf("[ISR] Page fault occured at address %llx\n", pageFault_addr);
         }
+        debugf("Error code: %d\n", cpu_status->error_code);
         panic("[ISR] Exception: %s\n", g_Exceptions[cpu_status->interrupt_number]);
     }
 }
