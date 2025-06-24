@@ -21,11 +21,27 @@ typedef struct
 
 typedef struct
 {
+    uint8_t Order;
+    uint16_t Chars1[5]; // UTF-16
+    uint8_t Attributes;
+    uint8_t Type;
+    uint8_t Checksum;
+    uint16_t Chars2[6];
+    uint16_t Zero;
+    uint16_t Chars3[2];
+} __attribute__((packed)) FAT32_LFNEntry;
+
+typedef struct
+{
     uint32_t size;
     uint32_t currentCluster;
     uint32_t currentOffset;
     bool isDirectory;
 } FAT32_FileHandle;
+
+#define FAT32_LFN_MAXCHARS 256 // Including NULL termination
+#define FAT32_ORDER_FINAL 0x40
+#define FAT32_LFN_MAX_INDEX 20
 
 bool FAT32_Initialize(Partition* partition);
 FAT32_FileHandle* FAT32_Open(const char* path);

@@ -185,10 +185,33 @@ uint32_t FAT32_NextCluster(uint32_t cluster)
     return (*(uint32_t*)&buffer[fatIndex % SECTOR_SIZE]) & 0x0FFFFFFF;
 }
 
+void FAT32_LFNCopy(uint8_t* lfnName, FAT32_LFNEntry* lfnEntry, int index)
+{
+    uint8_t* target = &lfnName[index * 13];
+    int targetIndex = 0;
+
+    for (int i = 0; i < 5; i++)
+    {
+        target[targetIndex++] = lfnEntry->Chars1[i];
+    }
+    for (int i = 0; i < 6; i++)
+    {
+        target[targetIndex++] = lfnEntry->Chars2[i];
+    }
+    for (int i = 0; i < 2; i++)
+    {
+        target[targetIndex++] = lfnEntry->Chars3[i];
+    }
+}
+
 bool FAT32_ListDirectoryEntry(uint32_t startCluster)
 {
     uint8_t buffer[SECTOR_SIZE];
     uint32_t currentCluster = startCluster;
+
+    // TODO: Support UTF-16 for LFN entries
+    uint8_t lfnName[FAT32_LFN_MAXCHARS] = { 0 };
+    int lfnLast = -1;
 
     while (currentCluster < 0x0FFFFFF8)
     {
@@ -210,21 +233,64 @@ bool FAT32_ListDirectoryEntry(uint32_t startCluster)
                     // No more entries
                     continue;
                 }
-                if (entries[j].Attributes == 0x0F ||
-                    entries[j].Name[0] == 0xE5 ||
+                if (entries[j].Name[0] == 0xE5 ||
                     entries[j].Attributes == 0x08)
                 {
                     // Skip LFN, no more entries, deleted entry, volume label
                     continue;
                 }
 
+                FAT32_DirectoryEntry* dirEntry = (FAT32_DirectoryEntry*)&entries[j];
+                FAT32_LFNEntry* lfnEntry = (FAT32_LFNEntry*)&entries[j];
+
+                if (dirEntry->Attributes == 0x0F && !lfnEntry->Type)
+                {
+                    int index = (lfnEntry->Order & ~FAT32_ORDER_FINAL) - 1;
+
+                    // Check if the LFN index is valid
+                    if (index > FAT32_LFN_MAX_INDEX)
+                    {
+                        debugf("[FAT32] Invalid LFN index!\n");
+                        return false;
+                    }
+
+                    // Check for final index
+                    if (lfnEntry->Order & FAT32_ORDER_FINAL)
+                    {
+                        lfnLast = index;
+                    }
+
+                    // Copy the LFN name
+                    FAT32_LFNCopy(lfnName, lfnEntry, index);
+                }
+
                 char name[MAX_NAME_LEN];
 
-                // Check if it is actually a short name
-                if (FAT32_IsShortName(entries[j].Name, sizeof(entries[j].Name)))
+                if (dirEntry->Attributes == 0x10 || dirEntry->Attributes == 0x20)
                 {
-                    FAT32_ShortNameToName(entries[j].Name, name);
-                    printf("%s\n", name);
+                    if (lfnLast >= 0)
+                    {
+                        int lfnLen = 0;
+                        while (lfnName[lfnLen++]);
+
+                        // Without the NULL termination
+                        lfnLen--;
+                        if (lfnLen < 0)
+                        {
+                            debugf("[FAT32] Invalid LFN len: %d\n", lfnLen);
+                            return false;
+                        }
+
+                        printf("%s\n", lfnName);
+                        lfnLast = -1;
+                    }
+                    else if (FAT32_IsShortName(dirEntry->Name, sizeof(dirEntry->Name)))
+                    {
+                        // In case, mkfs.fat didn't make a LFN entry
+                        FAT32_ShortNameToName(dirEntry->Name, name);
+                        printf("%s\n", name);
+                    }
+                    memset(lfnName, 0, FAT32_LFN_MAXCHARS);
                 }
             }
         }
@@ -239,6 +305,9 @@ bool FAT32_FindEntry(uint32_t startCluster, char* name, FAT32_DirectoryEntry* en
 {
     uint8_t buffer[SECTOR_SIZE];
     uint32_t currentCluster = startCluster;
+
+    uint8_t lfnName[FAT32_LFN_MAXCHARS] = { 0 };
+    int lfnLast = -1;
 
     while (currentCluster < 0x0FFFFFF8)
     {
@@ -259,29 +328,87 @@ bool FAT32_FindEntry(uint32_t startCluster, char* name, FAT32_DirectoryEntry* en
                     // No more entries
                     continue;
                 }
-                if (entries[j].Attributes == 0x0F ||
-                    entries[j].Name[0] == 0xE5 ||
+                if (entries[j].Name[0] == 0xE5 ||
                     entries[j].Attributes == 0x08)
                 {
                     // Skip LFN, no more entries, deleted entry, volume label
                     continue;
                 }
 
-                char entryName[MAX_NAME_LEN];
-                for (int i = 0; i < strlen(name); i++)
-                {
-                    name[i] = toupper(name[i]);
-                }
+                FAT32_DirectoryEntry* dirEntry = (FAT32_DirectoryEntry*)&entries[j];
+                FAT32_LFNEntry* lfnEntry = (FAT32_LFNEntry*)&entries[j];
 
-                if (FAT32_IsShortName(entries[j].Name, sizeof(entries[j].Name)))
+                if (dirEntry->Attributes == 0x0F && !lfnEntry->Type)
                 {
-                    FAT32_ShortNameToName(entries[j].Name, entryName);
-                }
+                    int index = (lfnEntry->Order & ~FAT32_ORDER_FINAL) - 1;
+                    
+                    if (index > FAT32_LFN_MAX_INDEX)
+                    {
+                        debugf("[FAT32] Invalid LFN index!\n");
+                        return false;
+                    }
 
-                if (strcmp(entryName, name) == 0)
+                    if (lfnEntry->Order & FAT32_ORDER_FINAL)
+                    {
+                        lfnLast = index;
+                    }
+
+                    FAT32_LFNCopy(lfnName, lfnEntry, index);
+                }
+                
+                if (dirEntry->Attributes == 0x10 || dirEntry->Attributes == 0x20)
                 {
-                    *entryOut = entries[j];
-                    return true;
+                    bool found = false;
+
+                    if (lfnLast >= 0)
+                    {
+                        int lfnLen = 0;
+                        while (lfnName[lfnLen++]);
+                        lfnLen--; // Without the NULL termination
+
+                        if (lfnLen < 0)
+                        {
+                            debugf("[FAT32] Invalid LFN len: %d\n", lfnLen);
+                            return false;
+                        }
+
+                        if (memcmp(lfnName, name, lfnLen) == 0)
+                        {
+                            // We found it!
+                            found = true;
+                        }
+
+                        lfnLast = -1;
+                    }
+                    else if (FAT32_IsShortName(dirEntry->Name, sizeof(dirEntry->Name)))
+                    {
+                        // In case mkfs.fat didn't make a LFN entry
+                        // Convert the compare name to uppercase
+                        char* cmpName = malloc(sizeof(name));
+                        for (int i = 0; i < sizeof(name); i++)
+                        {
+                            cmpName[i] = toupper(name[i]);
+                        }
+
+                        // Convert from short name to normal name
+                        char fileName[MAX_NAME_LEN];
+                        FAT32_ShortNameToName(dirEntry->Name, fileName);
+
+                        // Compare it
+                        if (memcmp(cmpName, fileName, sizeof(dirEntry->Name)) == 0)
+                        {
+                            found = true;
+                        }
+
+                        free(cmpName);
+                    }
+
+                    memset(lfnName, 0, FAT32_LFN_MAXCHARS);
+                    if (found)
+                    {
+                        *entryOut = *dirEntry;
+                        return true;
+                    }
                 }
             }
         }
