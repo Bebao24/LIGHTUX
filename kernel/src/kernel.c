@@ -44,7 +44,7 @@ void TestUserspace()
 	uint8_t* codePage = (uint8_t*)USER_BINARY_BASE;
 	// Map the code page
 	uint64_t* oldPageDir = GetPageDir();
-	ChangePageDirUnsafe(task->pageDir);
+	ChangePageDir(task->pageDir);
 
 	paging_MapPage(codePage, pmm_AllocatePage(), PF_USER | PF_RW);
 	memset(codePage, 0, PAGE_SIZE);
@@ -52,7 +52,7 @@ void TestUserspace()
 	// Copy the code
 	codePage[0] = userspaceCode[0];
 	codePage[1] = userspaceCode[1];
-	ChangePageDirUnsafe(oldPageDir);
+	ChangePageDir(oldPageDir);
 
 	task->status = TASK_STATUS_READY;
 }
