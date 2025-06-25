@@ -111,7 +111,8 @@ FAT32_FileHandle* FAT32_Open(const char* path)
     FAT32_FileHandle* handleOut = (FAT32_FileHandle*)malloc(sizeof(FAT32_FileHandle));
     handleOut->isDirectory = (entry.Attributes & 0x10) != 0;
     handleOut->size = entry.Size;
-    handleOut->currentCluster = (entry.FirstClusterHigh << 16) | entry.FirstClusterLow;
+    handleOut->firstCluster = (entry.FirstClusterHigh << 16) | entry.FirstClusterLow;
+    handleOut->currentCluster = handleOut->firstCluster;
     handleOut->currentOffset = 0;
     
     return handleOut;
@@ -566,6 +567,37 @@ bool FAT32_ListDirectory(const char* path)
     currentCluster = (entry.FirstClusterHigh << 16) | entry.FirstClusterLow;
 
     return FAT32_ListDirectoryEntry(currentCluster);
+}
+
+size_t FAT32_Seek(FAT32_FileHandle* handle, uint32_t offset)
+{
+    if (offset > handle->size)
+    {
+        return 0;
+    }
+
+    if (offset == handle->currentOffset)
+    {
+        return offset;
+    }
+
+    uint32_t clusterSize = g_FatData.BootSector.BS.SectorsPerCluster * SECTOR_SIZE;
+    uint32_t clusterIndex = offset / clusterSize;
+    uint32_t currentCluster = handle->firstCluster;
+
+    for (uint32_t i = 0; i < clusterIndex; i++)
+    {
+        currentCluster = FAT32_NextCluster(currentCluster);
+        if (currentCluster >= 0x0FFFFFF8)
+        {
+            return 0;
+        }
+    }
+
+    handle->currentCluster = currentCluster;
+    handle->currentOffset = offset;
+
+    return offset;
 }
 
 void FAT32_Close(FAT32_FileHandle* handle)

@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <mbr.h>
 
 typedef struct
@@ -33,6 +34,7 @@ typedef struct
 
 typedef struct
 {
+    uint32_t firstCluster;
     uint32_t size;
     uint32_t currentCluster;
     uint32_t currentOffset;
@@ -49,5 +51,6 @@ FAT32_FileHandle* FAT32_Open(const char* path);
 bool FAT32_ListDirectory(const char* path);
 bool FAT32_TraversePath(const char* path, FAT32_DirectoryEntry* entryOut);
 uint32_t FAT32_Read(FAT32_FileHandle* handle, void* buffer, uint32_t bytesCount);
+size_t FAT32_Seek(FAT32_FileHandle* handle, uint32_t offset);
 
 void FAT32_Close(FAT32_FileHandle* handle);
